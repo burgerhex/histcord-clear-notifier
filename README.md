@@ -1,0 +1,1 @@
+script that runs every once in a while to notify histcord about recent clears added to the list
