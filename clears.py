@@ -33,7 +33,7 @@ def get_current_state_from_sheet_values(all_values):
 
 
 def get_state_diff_list(previous_state, current_state):
-    diffs = []
+    clear_diffs = []
 
     old_players = set()
     new_players = set()
@@ -52,26 +52,33 @@ def get_state_diff_list(previous_state, current_state):
         player_name, map_name = key
 
         if new_val and not old_val:
-            diffs.append((DiffType.ADDED_CLEAR, player_name, map_name, new_val))
+            clear_diffs.append((DiffType.ADDED_CLEAR, player_name, map_name, new_val))
 
         elif not new_val and old_val:
-            diffs.append((DiffType.REMOVED_CLEAR, player_name, map_name, old_val))
+            clear_diffs.append((DiffType.REMOVED_CLEAR, player_name, map_name, old_val))
 
         elif new_val != old_val:
-            diffs.append((DiffType.CHANGED_CLEAR, player_name, map_name, old_val, new_val))
+            clear_diffs.append((DiffType.CHANGED_CLEAR, player_name, map_name, old_val, new_val))
 
+    player_map_diffs = []
 
     for player_name in old_players - new_players:
-        diffs.append((DiffType.REMOVED_PLAYER, player_name))
+        # TODO: have better handling here. do something from the following:
+        #  - remove any other diffs for this removed player
+        #  - have some part of the sheet where verifiers can specify if a player is renamed
+        #  - if there are an equal amount of removed and added players,
+        #    and they can be paired up sufficiently similarly, "transfer" the clears over?
+        player_map_diffs.append((DiffType.REMOVED_PLAYER, player_name))
     for player_name in new_players - old_players:
-        diffs.append((DiffType.ADDED_PLAYER, player_name))
+        player_map_diffs.append((DiffType.ADDED_PLAYER, player_name))
 
     for map_name in old_maps - new_maps:
-        diffs.append((DiffType.REMOVED_MAP, map_name))
+        # TODO: have better handling here, similar to above
+        player_map_diffs.append((DiffType.REMOVED_MAP, map_name))
     for map_name in new_maps - old_maps:
-        diffs.append((DiffType.ADDED_MAP, map_name))
+        player_map_diffs.append((DiffType.ADDED_MAP, map_name))
 
-    return diffs
+    return player_map_diffs + clear_diffs
 
 
 def save_state_as_grid(current_state):
