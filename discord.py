@@ -37,15 +37,15 @@ def send_diff_messages_to_webhook(diff_list):
 def diff_to_message(diff_type, values):
     match diff_type:
         case DiffType.ADDED_CLEAR:
-            return f"🎉 {values[0]} cleared {values[1]}! ({values[2]})"
+            return f"🎉 `{values[0]}` cleared {values[1]}! ({values[2]})"
         case DiffType.REMOVED_CLEAR:
-            return f"🔴 {values[0]}'s clear of {values[1]} was REMOVED (was {values[2]})"
+            return f"🔴 `{values[0]}`'s clear of {values[1]} was REMOVED (was {values[2]})"
         case DiffType.CHANGED_CLEAR:
-            return f"🟡 {values[0]}'s clear of {values[1]} was changed ({values[2]} -> {values[3]})"
+            return f"🟡 `{values[0]}`'s clear of {values[1]} was changed ({values[2]} -> {values[3]})"
         case DiffType.ADDED_PLAYER:
-            return f"👋 new player! {values[0]}"
+            return f"👋 new player! `{values[0]}`"
         case DiffType.REMOVED_PLAYER:
-            return f"🪦 removed player :( {values[0]}"
+            return f"🪦 removed player :( `{values[0]}`"
         case DiffType.ADDED_MAP:
             return f"🗺️ new map! {values[0]}"
         case DiffType.REMOVED_MAP:
