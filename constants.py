@@ -16,3 +16,23 @@ class DiffType(enum.Enum):
     REMOVED_PLAYER = 5
     ADDED_MAP = 6
     REMOVED_MAP = 7
+
+class ClearType(enum.Enum):
+    NO_VIDEO = 1
+    VIDEO = 2
+    NO_VIDEO_FC = 3
+    VIDEO_FC = 4
+    VIDEO_AND_FC = 5
+    GOLDEN = 6
+    GOLDEN_FC = 7
+    GOLDEN_AND_FC = 8
+    ALL_SILVERS = 9
+    ALL_SILVERS_AND_FC = 10
+    CREATOR = 11
+    CREATOR_FC = 12
+    OTHER = -1
+
+
+class NotificationType(enum.Enum):
+    PRIMARY = 1
+    SECONDARY = 2

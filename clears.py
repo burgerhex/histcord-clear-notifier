@@ -1,6 +1,6 @@
 import sys
 
-from constants import DiffType, MIN_PLAYER_COL_INDEX, MAP_PREFIXES_TO_IGNORE
+from constants import DiffType, MIN_PLAYER_COL_INDEX, MAP_PREFIXES_TO_IGNORE, ClearType
 
 
 def get_current_state_from_sheet_values(all_values):
@@ -52,13 +52,14 @@ def get_state_diff_list(previous_state, current_state):
         player_name, map_name = key
 
         if new_val and not old_val:
-            clear_diffs.append((DiffType.ADDED_CLEAR, player_name, map_name, new_val))
+            clear_diffs.append((DiffType.ADDED_CLEAR, player_name, map_name, (get_clear_type(new_val), new_val)))
 
         elif not new_val and old_val:
-            clear_diffs.append((DiffType.REMOVED_CLEAR, player_name, map_name, old_val))
+            clear_diffs.append((DiffType.REMOVED_CLEAR, player_name, map_name, (get_clear_type(old_val), old_val)))
 
         elif new_val != old_val:
-            clear_diffs.append((DiffType.CHANGED_CLEAR, player_name, map_name, old_val, new_val))
+            clear_diffs.append((DiffType.CHANGED_CLEAR, player_name, map_name, (get_clear_type(old_val), old_val),
+                                (get_clear_type(new_val), new_val)))
 
     player_map_diffs = []
 
@@ -109,3 +110,54 @@ def save_state_as_grid(current_state):
         state_grid[row_index][col_index] = value
 
     return state_grid
+
+
+# returns true if cell_value follows "pattern1 pattern2 ..."
+# should not be used with patterns that have spaces
+def is_repeated_and_numbered(cell_value, pattern):
+    parts = cell_value.split(" ")
+    if len(parts) < 2:
+        return False
+    for i, part in enumerate(parts):
+        if part != f"{pattern}{i + 1}":
+            return False
+    return True
+
+
+def is_clear_type(val, pattern):
+    return val == pattern
+
+
+def is_clear_type_or_repeated(val, pattern):
+    return is_clear_type(val, pattern) or is_repeated_and_numbered(val, pattern)
+
+
+def get_clear_type(cell_value):
+    val = cell_value.strip().lower()
+
+    if is_clear_type(val, "nv"):
+        return ClearType.NO_VIDEO
+    elif is_clear_type_or_repeated(val, "v"):
+        return ClearType.VIDEO
+    elif is_clear_type(val, "nv fc"):
+        return ClearType.NO_VIDEO_FC
+    elif is_clear_type_or_repeated(val, "fc"):
+        return ClearType.VIDEO_FC
+    elif is_clear_type(val, "v fc"):
+        return ClearType.VIDEO_AND_FC
+    elif is_clear_type(val, "g"):
+        return ClearType.GOLDEN
+    elif is_clear_type(val, "fcg"):
+        return ClearType.GOLDEN_FC
+    elif is_clear_type(val, "g & fc"):
+        return ClearType.GOLDEN_AND_FC
+    elif is_clear_type_or_repeated(val, "s"):
+        return ClearType.ALL_SILVERS
+    elif val.endswith(" & fc") and is_clear_type_or_repeated(val.removesuffix(" & fc"), "s"):
+        return ClearType.ALL_SILVERS_AND_FC
+    elif is_clear_type(val, "creator"):
+        return ClearType.CREATOR
+    elif is_clear_type(val, "creator [fc]"):
+        return ClearType.CREATOR_FC
+
+    return ClearType.OTHER

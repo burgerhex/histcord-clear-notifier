@@ -1,7 +1,8 @@
-import gspread
 import json
 import os
 import sys
+
+import gspread
 from google.oauth2.service_account import Credentials
 
 from constants import MIN_REQUIRED_ROWS
