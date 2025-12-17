@@ -99,10 +99,15 @@ def diff_to_message(diff_type, values):
             return f"👋 A new player was added: {values[0]}", NotificationType.SECONDARY
         case DiffType.REMOVED_PLAYER:
             return f"🪦 A player was removed: {values[0]}", NotificationType.SECONDARY
+        case DiffType.RENAMED_PLAYER:
+            return f"🤷 Player {values[0]} was RENAMED to {values[1]}!", NotificationType.SECONDARY
+
         case DiffType.ADDED_MAP:
             return f"🗺️ A new map was added: {values[0]}", NotificationType.PRIMARY
         case DiffType.REMOVED_MAP:
             return f"❌ A map was removed: {values[0]}", NotificationType.PRIMARY
+        case DiffType.RENAMED_MAP:
+            return f"📋 Map {values[0]} was RENAMED to {values[1]}!", NotificationType.SECONDARY
 
     print(f"ERROR: unknown diff type {diff_type} (values: {values})")
     sys.exit(1)

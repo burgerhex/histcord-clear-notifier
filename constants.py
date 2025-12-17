@@ -14,8 +14,10 @@ class DiffType(enum.Enum):
     CHANGED_CLEAR = 3
     ADDED_PLAYER = 4
     REMOVED_PLAYER = 5
-    ADDED_MAP = 6
-    REMOVED_MAP = 7
+    RENAMED_PLAYER = 6
+    ADDED_MAP = 7
+    REMOVED_MAP = 8
+    RENAMED_MAP = 9
 
 class ClearType(enum.Enum):
     NO_VIDEO = 1
