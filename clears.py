@@ -49,7 +49,7 @@ def get_state_diff_list(previous_state, current_state):
 
         if key[1] not in old_map_clearers:
             old_map_clearers[key[1]] = set()
-        old_map_clearers[key[1]] = key[0]
+        old_map_clearers[key[1]].add(key[0])
 
         # we could track old player clears that are not present in the new state, but we don't really need to.
         # the only situations where this happens are if a map or player is deleted (in which case we don't actually
