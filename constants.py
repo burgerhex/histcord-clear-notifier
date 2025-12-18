@@ -19,6 +19,7 @@ class DiffType(enum.Enum):
     REMOVED_MAP = 8
     RENAMED_MAP = 9
 
+
 class ClearType(enum.Enum):
     NO_VIDEO = 1
     VIDEO = 2

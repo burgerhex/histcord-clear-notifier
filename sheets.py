@@ -62,10 +62,11 @@ def load_previous_state_from_state_sheet(gc):
             map_name = data_row[0]
 
             for i, value in enumerate(data_row[1:]):
-                if i < len(player_names):
+                value = value.strip()
+                if i < len(player_names) and value:
                     player_name = player_names[i]
                     unique_key = (player_name, map_name)
-                    previous_state[unique_key] = value.strip()
+                    previous_state[unique_key] = value
 
         return state_sheet, previous_state
 

@@ -1,6 +1,6 @@
 import sys
 
-from constants import DiffType, MIN_PLAYER_COL_INDEX, MAP_PREFIXES_TO_IGNORE, ClearType
+from constants import ClearType, DiffType, MAP_PREFIXES_TO_IGNORE, MIN_PLAYER_COL_INDEX
 
 
 def get_current_state_from_sheet_values(all_values):
@@ -23,11 +23,12 @@ def get_current_state_from_sheet_values(all_values):
             continue
 
         for player_index, cell_value in enumerate(row):
-            if player_index < MIN_PLAYER_COL_INDEX:
+            cell_value = cell_value.strip()
+            if player_index < MIN_PLAYER_COL_INDEX or not cell_value:
                 continue
 
             unique_key = (player_names[player_index], map_name)
-            current_state[unique_key] = cell_value.strip()
+            current_state[unique_key] = cell_value
 
     return current_state
 
@@ -41,7 +42,7 @@ def get_state_diff_list(previous_state, current_state):
     new_map_clearers = {}
 
     # populate old clear info
-    for key, new_val in previous_state.items():
+    for key, old_val in previous_state.items():
         if key[0] not in old_player_clears:
             old_player_clears[key[0]] = set()
         old_player_clears[key[0]].add(key[1])
@@ -65,8 +66,12 @@ def get_state_diff_list(previous_state, current_state):
         new_map_clearers[key[1]].add(key[0])
 
     # renaming dicts are new -> old name
-    player_diffs, player_renamings = entity_diff_list(old_player_clears, new_player_clears, DiffType.ADDED_PLAYER, DiffType.REMOVED_PLAYER, DiffType.RENAMED_PLAYER)
-    map_diffs, map_renamings = entity_diff_list(old_map_clearers, new_map_clearers, DiffType.ADDED_MAP, DiffType.REMOVED_MAP, DiffType.RENAMED_MAP)
+    player_diffs, player_renamings = (
+        entity_diff_list(old_player_clears, new_player_clears,
+                         DiffType.ADDED_PLAYER, DiffType.REMOVED_PLAYER, DiffType.RENAMED_PLAYER))
+    map_diffs, map_renamings = (
+        entity_diff_list(old_map_clearers, new_map_clearers,
+                         DiffType.ADDED_MAP, DiffType.REMOVED_MAP, DiffType.RENAMED_MAP))
     old_renamed_player_names = player_renamings.values()
     old_renamed_map_names = map_renamings.values()
 
@@ -105,7 +110,8 @@ def get_state_diff_list(previous_state, current_state):
 def entity_diff_list(old_entities, new_entities, added_type, removed_type, renamed_type):
     diff_list = []
 
-    added_entities, removed_entities, entity_renamings = old_and_new_entities_to_added_removed_renamed(old_entities, new_entities)
+    added_entities, removed_entities, entity_renamings = (
+        old_and_new_entities_to_added_removed_renamed(old_entities, new_entities))
 
     for entity in added_entities:
         diff_list.append((added_type, entity))
@@ -121,9 +127,9 @@ def entity_diff_list(old_entities, new_entities, added_type, removed_type, renam
 def old_and_new_entities_to_added_removed_renamed(old_entities, new_entities):
     removed_or_renamed_entities = old_entities.keys() - new_entities.keys()
     added_or_renamed_entities = new_entities.keys() - old_entities.keys()
-    removed_or_renamed_entity_values = {player_name: old_entities[player_name] for player_name in
+    removed_or_renamed_entity_values = {entity_name: old_entities[entity_name] for entity_name in
                                         removed_or_renamed_entities}
-    added_or_renamed_entity_values = {player_name: new_entities[player_name] for player_name in
+    added_or_renamed_entity_values = {entity_name: new_entities[entity_name] for entity_name in
                                       added_or_renamed_entities}
 
     entity_matchings = maybe_pair_removed_and_added_entities(removed_or_renamed_entity_values,
@@ -140,7 +146,6 @@ def old_and_new_entities_to_added_removed_renamed(old_entities, new_entities):
 # try to pair up removed players or maps with added players or maps to see if they were renamed
 # use kuhn's algorithm for a maximum bipartite matching
 # returns a dict of new name -> old name
-# TODO: doesn't seem to pair well. add heuristic?
 def maybe_pair_removed_and_added_entities(removed_dict, added_dict):
     if not removed_dict or not added_dict:
         return {}

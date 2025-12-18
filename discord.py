@@ -7,7 +7,7 @@ import requests
 from constants import DiffType, ClearType, NotificationType
 
 
-def send_diff_messages_to_webhook(diff_list):
+def send_diff_messages_to_webhook(diff_list, only_print=False):
     primary_discord_url = os.environ.get('PRIMARY_DISCORD_WEBHOOK_URL')
     secondary_discord_url = os.environ.get('SECONDARY_DISCORD_WEBHOOK_URL')
 
@@ -16,17 +16,20 @@ def send_diff_messages_to_webhook(diff_list):
         return
 
     for i, (diff_type, *values) in enumerate(diff_list):
-        if i > 0:
+        if i > 0 and not only_print:
             # webhooks have a rate limit of 5 requests per 2 seconds per webhook
             # send 4 requests per 2 seconds just to be safe
             time.sleep(0.5)
         msg, notif_type = diff_to_message(diff_type, values)
-        payload = {"content": msg}
-        try:
-            discord_url = primary_discord_url if notif_type == NotificationType.PRIMARY else secondary_discord_url
-            requests.post(discord_url, json=payload)
-        except Exception as e:
-            print(f"ERROR: Failed to send Discord message: {e}")
+        if only_print:
+            print("[PRIMARY]  " if notif_type == NotificationType.PRIMARY else "[SECONDARY]", msg)
+        else:
+            payload = {"content": msg}
+            try:
+                discord_url = primary_discord_url if notif_type == NotificationType.PRIMARY else secondary_discord_url
+                requests.post(discord_url, json=payload)
+            except Exception as e:
+                print(f"ERROR: Failed to send Discord message: {e}")
 
 
 # cell values can be player names, map names, or clear values (which are a pair)
