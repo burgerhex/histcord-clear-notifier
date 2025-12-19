@@ -40,28 +40,28 @@ def get_state_diff_list(previous_state, current_state):
     new_map_clearers = {}
 
     # populate old clear info
-    for key, old_val in previous_state.items():
-        if key[0] not in old_player_clears:
-            old_player_clears[key[0]] = set()
-        old_player_clears[key[0]].add(key[1])
+    for (player_name, map_name), old_val in previous_state.items():
+        if player_name not in old_player_clears:
+            old_player_clears[player_name] = set()
+        old_player_clears[player_name].add(map_name)
 
-        if key[1] not in old_map_clearers:
-            old_map_clearers[key[1]] = set()
-        old_map_clearers[key[1]].add(key[0])
+        if map_name not in old_map_clearers:
+            old_map_clearers[map_name] = set()
+        old_map_clearers[map_name].add(player_name)
 
         # we could track old player clears that are not present in the new state, but we don't really need to.
         # the only situations where this happens are if a map or player is deleted (in which case we don't actually
         # want to notify on the "removed" clears) or a map or player is renamed (which is handled below)
 
     # populate new clear info
-    for key, new_val in current_state.items():
-        if key[0] not in new_player_clears:
-            new_player_clears[key[0]] = set()
-        new_player_clears[key[0]].add(key[1])
+    for (player_name, map_name), new_val in current_state.items():
+        if player_name not in new_player_clears:
+            new_player_clears[player_name] = set()
+        new_player_clears[player_name].add(map_name)
 
-        if key[1] not in new_map_clearers:
-            new_map_clearers[key[1]] = set()
-        new_map_clearers[key[1]].add(key[0])
+        if map_name not in new_map_clearers:
+            new_map_clearers[map_name] = set()
+        new_map_clearers[map_name].add(player_name)
 
     # renaming dicts are new -> old name
     player_diffs, player_renamings = (
