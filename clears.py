@@ -53,12 +53,20 @@ def get_state_diff_list(previous_state, current_state):
         new_map_clearers[map_name].add(player_name)
 
     # renaming dicts are new -> old name
-    player_diffs, player_renamings = (
-        entity_diff_list(old_player_clears, new_player_clears,
-                         DiffType.ADDED_PLAYER, DiffType.REMOVED_PLAYER, DiffType.RENAMED_PLAYER))
-    map_diffs, map_renamings = (
-        entity_diff_list(old_map_clearers, new_map_clearers,
-                         DiffType.ADDED_MAP, DiffType.REMOVED_MAP, DiffType.RENAMED_MAP))
+    added_players, removed_players, player_renamings = (
+        old_and_new_entities_to_added_removed_renamed(old_player_clears, new_player_clears))
+    added_maps, removed_maps, map_renamings = (
+        old_and_new_entities_to_added_removed_renamed(old_map_clearers, new_map_clearers))
+
+    player_diffs = [(DiffType.ADDED_PLAYER, player) for player in added_players] + \
+                   [(DiffType.REMOVED_PLAYER, player) for player in removed_players] + \
+                   [(DiffType.RENAMED_PLAYER, old_player, new_player) for new_player, old_player in
+                    player_renamings.items()]
+    map_diffs = [(DiffType.ADDED_MAP, map_name) for map_name in added_maps] + \
+                [(DiffType.REMOVED_MAP, map_name) for map_name in removed_maps] + \
+                [(DiffType.RENAMED_MAP, old_map_name, new_map_name) for new_map_name, old_map_name in
+                 map_renamings.items()]
+
     old_renamed_player_names = player_renamings.values()
     old_renamed_map_names = map_renamings.values()
 
@@ -78,6 +86,9 @@ def get_state_diff_list(previous_state, current_state):
 
         if player_name in old_renamed_player_names or map_name in old_renamed_map_names:
             # skip renamed entries - we will get these from the new entries
+            continue
+        elif player_name in removed_players or map_name in removed_maps:
+            # skip removed (not renamed) players or maps
             continue
 
         new_val = current_state.get(new_key, "")
@@ -137,23 +148,6 @@ def get_state_diff_list(previous_state, current_state):
                 clear_diffs.append((clear_entry[0], player_name, trimmed_map_name, *clear_entry[2:]))
 
     return player_diffs + map_diffs + clear_diffs
-
-
-def entity_diff_list(old_entities, new_entities, added_type, removed_type, renamed_type):
-    diff_list = []
-
-    added_entities, removed_entities, entity_renamings = (
-        old_and_new_entities_to_added_removed_renamed(old_entities, new_entities))
-
-    for entity in added_entities:
-        diff_list.append((added_type, entity))
-    for entity in removed_entities:
-        diff_list.append((removed_type, entity))
-    for new_entity, old_entity in entity_renamings.items():
-        diff_list.append((renamed_type, old_entity, new_entity))
-
-    # renaming dict is new -> old name
-    return diff_list, entity_renamings
 
 
 def old_and_new_entities_to_added_removed_renamed(old_entities, new_entities):
