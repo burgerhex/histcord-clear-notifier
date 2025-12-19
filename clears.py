@@ -1,4 +1,5 @@
 import sys
+from collections import defaultdict
 
 from constants import ClearType, DiffType, MAP_PREFIXES_TO_IGNORE, MIN_PLAYER_COL_INDEX
 
@@ -34,33 +35,21 @@ def get_current_state_from_sheet_values(all_values):
 
 
 def get_state_diff_list(previous_state, current_state):
-    old_player_clears = {}
-    new_player_clears = {}
-    old_map_clearers = {}
-    new_map_clearers = {}
+    # player_name -> set { map_name }
+    old_player_clears = defaultdict(set)
+    new_player_clears = defaultdict(set)
+    # map_name -> set { player_name }
+    old_map_clearers = defaultdict(set)
+    new_map_clearers = defaultdict(set)
 
     # populate old clear info
     for (player_name, map_name), old_val in previous_state.items():
-        if player_name not in old_player_clears:
-            old_player_clears[player_name] = set()
         old_player_clears[player_name].add(map_name)
-
-        if map_name not in old_map_clearers:
-            old_map_clearers[map_name] = set()
         old_map_clearers[map_name].add(player_name)
-
-        # we could track old player clears that are not present in the new state, but we don't really need to.
-        # the only situations where this happens are if a map or player is deleted (in which case we don't actually
-        # want to notify on the "removed" clears) or a map or player is renamed (which is handled below)
 
     # populate new clear info
     for (player_name, map_name), new_val in current_state.items():
-        if player_name not in new_player_clears:
-            new_player_clears[player_name] = set()
         new_player_clears[player_name].add(map_name)
-
-        if map_name not in new_map_clearers:
-            new_map_clearers[map_name] = set()
         new_map_clearers[map_name].add(player_name)
 
     # renaming dicts are new -> old name
@@ -73,6 +62,8 @@ def get_state_diff_list(previous_state, current_state):
     old_renamed_player_names = player_renamings.values()
     old_renamed_map_names = map_renamings.values()
 
+    # this won't have duplicates since any (player, map) combinations will be unioned. the only exception is renamed
+    # maps or players, which is skipped in the for loop below (for the old name, then we do check the new name).
     old_and_new_keys = previous_state.keys() | current_state.keys()
 
     # first, store new clears by player/map key. this will allow us to ignore "clears" of [FC] entries as duplicates
@@ -80,7 +71,7 @@ def get_state_diff_list(previous_state, current_state):
     # (player, trimmed_map_name) -> set { (diff_type, clear_type, *vals) }
     # diff_type will be a DiffType, clear_type will be a str "[C]" or "[FC]" or something else, vals will be other
     # values to pass along
-    clear_diffs_by_player_and_map = {}
+    clear_diffs_by_player_and_map = defaultdict(set)
 
     for new_key in old_and_new_keys:
         player_name, map_name = new_key
@@ -108,10 +99,6 @@ def get_state_diff_list(previous_state, current_state):
             clear_type = map_name_no_author[i:]
             trimmed_map_name = map_name_no_author[:i - 1]
 
-        # add the entry to the dict. may remain empty, this is ok
-        if (player_name, trimmed_map_name) not in clear_diffs_by_player_and_map:
-            clear_diffs_by_player_and_map[(player_name, trimmed_map_name)] = set()
-
         if new_val and not old_val:
             clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add((
                 DiffType.ADDED_CLEAR, clear_type, (get_clear_type(new_val), new_val)))
@@ -122,8 +109,6 @@ def get_state_diff_list(previous_state, current_state):
             clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add(
                 (DiffType.CHANGED_CLEAR, clear_type,
                  (get_clear_type(old_val), old_val), (get_clear_type(new_val), new_val)))
-        else:
-            del clear_diffs_by_player_and_map[(player_name, trimmed_map_name)]
 
     clear_diffs = []
     # we only care about if a set has 2 entries, one is FC and one is C, the FC one is DiffType.ADDED_CLEAR,
@@ -139,7 +124,9 @@ def get_state_diff_list(previous_state, current_state):
             non_fc_clear_entry, fc_clear_entry = \
                 (clear_entry1, clear_entry2) if clear_entry1[1] == "[C]" else (clear_entry2, clear_entry1)
             # if we have 2 entries, one C which is added or changed, and one FC which is added, then we can count
-            # this as essentially one new full clear with one diff
+            # this as essentially one new full clear with one diff. we want to get the "fc" cell value from the
+            # entry for the non-fc row. this could be CHANGED (which has two values) or ADDED (which has one value),
+            # but either way it's the last value.
             if (non_fc_clear_entry[0] in {DiffType.ADDED_CLEAR, DiffType.CHANGED_CLEAR} and
                     fc_clear_entry[0] == DiffType.ADDED_CLEAR):
                 add_all_entries = False
@@ -199,7 +186,7 @@ def maybe_pair_removed_and_added_entities(removed_dict, added_dict):
     m = len(removed_dict)
     n = len(added_dict)
     # adjacency list
-    graph = {}
+    graph = defaultdict(set)
 
     # populate edges: a removed entity can be mapped to an added entity if its set is a subset of the added entity's set
     # IMPORTANT NOTE: this assumes that when a player or map is renamed, no clears are removed from them. if a clear
@@ -209,8 +196,6 @@ def maybe_pair_removed_and_added_entities(removed_dict, added_dict):
     # another possible rare scenario is that a player was truly removed and another player with the same clears was
     # truly added, but this is also extremely rare. helpers and mods should still be told this.
     for removed_entity, clears in removed_dict.items():
-        if removed_entity not in graph:
-            graph[removed_entity] = set()
         for added_entity, new_clears in added_dict.items():
             if clears <= new_clears:
                 graph[removed_entity].add(added_entity)
