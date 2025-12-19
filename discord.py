@@ -4,6 +4,7 @@ import time
 
 import requests
 
+import clear_types
 from constants import DiffType, ClearType, NotificationType
 
 
@@ -32,12 +33,12 @@ def send_diff_messages_to_webhook(diff_list, only_print=False):
                 print(f"ERROR: Failed to send Discord message: {e}")
 
 
-# cell values can be player names, map names, or clear values (which are a pair)
-def format_cell_value(value):
+def format_player_or_map_name(value):
     # remove newlines
     value = value.replace("\n", " ")
     value = value.replace("\r", " ")
-
+    value = value.replace("  ", " ")
+    # use backticks for monospace formatting
     return f"`{value}`"
 
 
@@ -66,51 +67,62 @@ def clear_type_to_action_and_tier(clear_type):
 
 
 def diff_to_message(diff_type, values):
-    cleaned_values = []
-    # first 2 values are always strings, last 2 values are always pairs
-    for i, value in enumerate(values):
-        if i < 2:
-            cleaned_values.append(format_cell_value(value))
-        else:
-            cleaned_values.append((value[0], format_cell_value(value[1])))
+    cleaned_values = values[:]
+    # only need to format the first 2 values (which will always be map and player names). should not format any further
+    # ones since those will be cell values
+    for i in range(min(2, len(values))):
+        cleaned_values[i] = format_player_or_map_name(cleaned_values[i])
     values = cleaned_values
 
     match diff_type:
         case DiffType.ADDED_CLEAR:
-            if values[2][0] == ClearType.OTHER:
-                return (f"⚠️ An unrecognized value ({values[2][1]}) was added to {values[0]}'s cell for {values[1]}!",
+            player_name, map_name, cell_value = values
+            clear_type = clear_types.cell_value_to_clear_type(cell_value)
+            if clear_type == ClearType.OTHER:
+                return (f"⚠️ An unrecognized value ({cell_value}) was added to {player_name}'s cell for {map_name}!",
                         NotificationType.SECONDARY)
             else:
-                return (f"🎉 {values[0]} {clear_type_to_action_and_tier(values[2][0])[0]} {values[1]}!",
-                        NotificationType.PRIMARY)
+                clear_action, _ = clear_type_to_action_and_tier(clear_type)
+                return f"🎉 {player_name} {clear_action} {map_name}!", NotificationType.PRIMARY
 
         case DiffType.REMOVED_CLEAR:
-            return (f"🔴 {values[0]}'s clear of {values[1]} was REMOVED (was {values[2][1]} ({values[2][0]}))!",
+            player_name, map_name, old_cell_value = values
+            clear_type = clear_types.cell_value_to_clear_type(old_cell_value)
+            return (f"🔴 {player_name}'s clear of {map_name} was REMOVED (was {old_cell_value} ({clear_type}))!",
                     NotificationType.SECONDARY)
 
         case DiffType.CHANGED_CLEAR:
-            _, old_tier = clear_type_to_action_and_tier(values[2][0])
-            new_action, new_tier = clear_type_to_action_and_tier(values[3][0])
+            player_name, map_name, old_cell_value, new_cell_value = values
+            old_clear_type = clear_types.cell_value_to_clear_type(old_cell_value)
+            new_clear_type = clear_types.cell_value_to_clear_type(new_cell_value)
+            _, old_tier = clear_type_to_action_and_tier(old_clear_type)
+            new_action, new_tier = clear_type_to_action_and_tier(new_clear_type)
             if new_tier > old_tier:
-                return f"🎉 {values[0]} {new_action} {values[1]}!", NotificationType.PRIMARY
+                return f"🎉 {player_name} {new_action} {map_name}!", NotificationType.PRIMARY
             else:
-                return (f"🟡 {values[0]}'s clear of {values[1]} was changed from {values[2][1]} ({values[2][0]}) to "
-                        f"{values[3][1]} ({values[3][0]})",
+                return (f"🟡 {player_name}'s clear of {map_name} was changed from {old_cell_value} ({old_clear_type}) "
+                        f"to {new_cell_value} ({new_clear_type})",
                         NotificationType.SECONDARY)
 
         case DiffType.ADDED_PLAYER:
-            return f"👋 A new player was added: {values[0]}", NotificationType.SECONDARY
+            player_name, = values
+            return f"👋 A new player was added: {player_name}", NotificationType.SECONDARY
         case DiffType.REMOVED_PLAYER:
-            return f"🪦 A player was removed: {values[0]}", NotificationType.SECONDARY
+            player_name, = values
+            return f"🪦 A player was removed: {player_name}", NotificationType.SECONDARY
         case DiffType.RENAMED_PLAYER:
-            return f"🤷 Player {values[0]} was RENAMED to {values[1]}!", NotificationType.SECONDARY
+            old_player_name, new_player_name = values
+            return f"🤷 Player {old_player_name} was RENAMED to {new_player_name}!", NotificationType.SECONDARY
 
         case DiffType.ADDED_MAP:
-            return f"🗺️ A new map was added: {values[0]}", NotificationType.PRIMARY
+            map_name, = values
+            return f"🗺️ A new map was added: {map_name}", NotificationType.PRIMARY
         case DiffType.REMOVED_MAP:
-            return f"❌ A map was removed: {values[0]}", NotificationType.PRIMARY
+            map_name, = values
+            return f"❌ A map was removed: {map_name}", NotificationType.PRIMARY
         case DiffType.RENAMED_MAP:
-            return f"📋 Map {values[0]} was RENAMED to {values[1]}!", NotificationType.SECONDARY
+            old_map_name, new_map_name = values
+            return f"📋 Map {old_map_name} was RENAMED to {new_map_name}!", NotificationType.SECONDARY
 
     print(f"ERROR: unknown diff type {diff_type} (values: {values})")
     sys.exit(1)
