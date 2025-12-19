@@ -34,8 +34,6 @@ def get_current_state_from_sheet_values(all_values):
 
 
 def get_state_diff_list(previous_state, current_state):
-    clear_diffs = []
-
     old_player_clears = {}
     new_player_clears = {}
     old_map_clearers = {}
@@ -77,6 +75,13 @@ def get_state_diff_list(previous_state, current_state):
 
     old_and_new_keys = previous_state.keys() | current_state.keys()
 
+    # first, store new clears by player/map key. this will allow us to ignore "clears" of [FC] entries as duplicates
+    # of "full clears" of [C] entries. then we can properly format the diff list.
+    # (player, trimmed_map_name) -> set { (diff_type, clear_type, *vals) }
+    # diff_type will be a DiffType, clear_type will be a str "[C]" or "[FC]" or something else, vals will be other
+    # values to pass along
+    clear_diffs_by_player_and_map = {}
+
     for new_key in old_and_new_keys:
         player_name, map_name = new_key
 
@@ -94,15 +99,56 @@ def get_state_diff_list(previous_state, current_state):
         old_key = (old_player_name, old_map_name)
         old_val = previous_state.get(old_key, "")
 
+        # get rid of author and weird newlines
+        map_name_no_author = map_name.replace("\n", " ").replace("  ", " ").split(" by ")[0]
+        clear_type = "[C]"  # default
+        trimmed_map_name = map_name_no_author
+        if map_name_no_author.endswith("]"):
+            i = map_name_no_author.rfind("[")
+            clear_type = map_name_no_author[i:]
+            trimmed_map_name = map_name_no_author[:i - 1]
+
+        # add the entry to the dict. may remain empty, this is ok
+        if (player_name, trimmed_map_name) not in clear_diffs_by_player_and_map:
+            clear_diffs_by_player_and_map[(player_name, trimmed_map_name)] = set()
+
         if new_val and not old_val:
-            clear_diffs.append((DiffType.ADDED_CLEAR, player_name, map_name, (get_clear_type(new_val), new_val)))
-
+            clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add((
+                DiffType.ADDED_CLEAR, clear_type, (get_clear_type(new_val), new_val)))
         elif not new_val and old_val:
-            clear_diffs.append((DiffType.REMOVED_CLEAR, player_name, map_name, (get_clear_type(old_val), old_val)))
-
+            clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add(
+                (DiffType.REMOVED_CLEAR, clear_type, (get_clear_type(old_val), old_val)))
         elif new_val != old_val:
-            clear_diffs.append((DiffType.CHANGED_CLEAR, player_name, map_name, (get_clear_type(old_val), old_val),
-                                (get_clear_type(new_val), new_val)))
+            clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add(
+                (DiffType.CHANGED_CLEAR, clear_type,
+                 (get_clear_type(old_val), old_val), (get_clear_type(new_val), new_val)))
+        else:
+            del clear_diffs_by_player_and_map[(player_name, trimmed_map_name)]
+
+    clear_diffs = []
+    # we only care about if a set has 2 entries, one is FC and one is C, the FC one is DiffType.ADDED_CLEAR,
+    # and the C one is CHANGED_CLEAR or ADDED_CLEAR.
+    # as of the time of writing, there can only be 3 "clear types": "[C]", "[FC]", and "[All Maps]" (specific to
+    # devil's den). these should *probably* never increase, and the devil's den only has one entry, so the most we
+    # should see per set is two (c and fc).
+    for (player_name, trimmed_map_name), clear_entries in clear_diffs_by_player_and_map.items():
+        add_all_entries = True
+        clear_types = {clear_entry[1] for clear_entry in clear_entries}
+        if len(clear_entries) == 2 and clear_types == {"[C]", "[FC]"}:
+            clear_entry1, clear_entry2 = clear_entries
+            non_fc_clear_entry, fc_clear_entry = \
+                (clear_entry1, clear_entry2) if clear_entry1[1] == "[C]" else (clear_entry2, clear_entry1)
+            # if we have 2 entries, one C which is added or changed, and one FC which is added, then we can count
+            # this as essentially one new full clear with one diff
+            if (non_fc_clear_entry[0] in {DiffType.ADDED_CLEAR, DiffType.CHANGED_CLEAR} and
+                    fc_clear_entry[0] == DiffType.ADDED_CLEAR):
+                add_all_entries = False
+                clear_diffs.append((DiffType.ADDED_CLEAR, player_name, trimmed_map_name, non_fc_clear_entry[-1]))
+
+        if add_all_entries:
+            # otherwise, add a diff for each entry
+            for clear_entry in clear_entries:
+                clear_diffs.append((clear_entry[0], player_name, trimmed_map_name, *clear_entry[2:]))
 
     return player_diffs + map_diffs + clear_diffs
 
