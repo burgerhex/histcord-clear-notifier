@@ -1,40 +1,60 @@
+import itertools
 import sys
 from collections import defaultdict
 
-from constants import ClearType, DiffType, MAP_PREFIXES_TO_IGNORE, MIN_PLAYER_COL_INDEX
+from constants import DiffType, MAP_PREFIXES_TO_IGNORE, MIN_PLAYER_COL_INDEX, FIRST_REAL_MAP_ROW_INDEX, \
+    FIRST_REAL_MAP_STAR_DIFFICULTY
 
 
-def get_current_state_from_sheet_values(all_values):
+def get_current_state_and_maps_from_sheet_values(all_values):
     if len(all_values) < 1 or len(all_values[0]) < MIN_PLAYER_COL_INDEX:
         print("ERROR: Sheet is too small or doesn't follow the ID/Label structure.")
         sys.exit(1)
 
-    player_names = all_values[0]  # player names
+    # includes the column label cells, but we utilize this so we don't have to mess with column indices
+    player_names = all_values[0]
+    map_difficulties = {}
     current_state = {}
+    previous_map_empty = False
+    map_star_difficulty = FIRST_REAL_MAP_STAR_DIFFICULTY
 
-    for row_i, row in enumerate(all_values):
-        # skip player names row or empty rows
-        if row_i == 0 or not row:
+    # use islice to start at a certain index. more efficient than making a copy of the entire table
+    # (i.e. all_values[first_i:]) or skipping every row up to the first one (if row_i < first_i: continue).
+    for row in itertools.islice(all_values, FIRST_REAL_MAP_ROW_INDEX, None):
+        # skip empty rows (shouldn't happen, but just in case)
+        if not row:
             continue
 
         map_name = row[0]
 
-        # skip star label rows
-        if not map_name or any(map_name.startswith(prefix) for prefix in MAP_PREFIXES_TO_IGNORE):
+        # skip weird rows
+        if any(map_name.startswith(prefix) for prefix in MAP_PREFIXES_TO_IGNORE):
             continue
 
-        for player_index, cell_value in enumerate(row):
+        # two empty map names in a row means we've reached a new star difficulty
+        if not map_name:
+            if previous_map_empty:
+                map_star_difficulty -= 1
+                previous_map_empty = False
+            else:
+                previous_map_empty = True
+            continue
+
+        map_difficulties[map_name] = map_star_difficulty
+        first_player_i = MIN_PLAYER_COL_INDEX
+        # use islice again to start at the first player column
+        for player_index, cell_value in enumerate(itertools.islice(row, first_player_i, None), start=first_player_i):
             cell_value = cell_value.strip()
-            if player_index < MIN_PLAYER_COL_INDEX or not cell_value:
+            if not cell_value:
                 continue
 
             unique_key = (player_names[player_index], map_name)
             current_state[unique_key] = cell_value
 
-    return current_state
+    return current_state, map_difficulties
 
 
-def get_state_diff_list(previous_state, current_state):
+def get_state_diff_list(previous_state, current_state, map_difficulties):
     # player_name -> set { map_name }
     old_player_clears = defaultdict(set)
     new_player_clears = defaultdict(set)
@@ -62,10 +82,12 @@ def get_state_diff_list(previous_state, current_state):
                    [(DiffType.REMOVED_PLAYER, player) for player in removed_players] + \
                    [(DiffType.RENAMED_PLAYER, old_player, new_player) for new_player, old_player in
                     player_renamings.items()]
-    map_diffs = [(DiffType.ADDED_MAP, map_name) for map_name in added_maps] + \
+    # can't really get star value of a removed map unless we also store that in the state sheet. which we could do,
+    # but doesn't really seem necessary right now.
+    map_diffs = [(DiffType.ADDED_MAP, map_name, map_difficulties[map_name]) for map_name in added_maps] + \
                 [(DiffType.REMOVED_MAP, map_name) for map_name in removed_maps] + \
-                [(DiffType.RENAMED_MAP, old_map_name, new_map_name) for new_map_name, old_map_name in
-                 map_renamings.items()]
+                [(DiffType.RENAMED_MAP, old_map_name, new_map_name, map_difficulties[new_map_name]) for
+                 new_map_name, old_map_name in map_renamings.items()]
 
     old_renamed_player_names = player_renamings.values()
     old_renamed_map_names = map_renamings.values()
@@ -101,6 +123,7 @@ def get_state_diff_list(previous_state, current_state):
         old_key = (old_player_name, old_map_name)
         old_val = previous_state.get(old_key, "")
 
+        map_difficulty = map_difficulties[map_name]
         # get rid of author and weird newlines
         map_name_no_author = map_name.replace("\n", " ").replace("  ", " ").split(" by ")[0]
         clear_type = "[C]"  # default
@@ -112,13 +135,13 @@ def get_state_diff_list(previous_state, current_state):
 
         if new_val and not old_val:
             clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add((
-                DiffType.ADDED_CLEAR, clear_type, new_val))
+                DiffType.ADDED_CLEAR, clear_type, new_val, map_difficulty))
         elif not new_val and old_val:
             clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add(
-                (DiffType.REMOVED_CLEAR, clear_type, old_val))
+                (DiffType.REMOVED_CLEAR, clear_type, old_val, map_difficulty))
         elif new_val != old_val:
             clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add(
-                (DiffType.CHANGED_CLEAR, clear_type, old_val, new_val))
+                (DiffType.CHANGED_CLEAR, clear_type, old_val, new_val, map_difficulty))
 
     clear_diffs = []
     # we only care about if a set has 2 entries, one is FC and one is C, the FC one is DiffType.ADDED_CLEAR,
@@ -135,12 +158,12 @@ def get_state_diff_list(previous_state, current_state):
                 (clear_entry1, clear_entry2) if clear_entry1[1] == "[C]" else (clear_entry2, clear_entry1)
             # if we have 2 entries, one C which is added or changed, and one FC which is added, then we can count
             # this as essentially one new full clear with one diff. we want to get the "fc" cell value from the
-            # entry for the non-fc row. this could be CHANGED (which has two values) or ADDED (which has one value),
-            # but either way it's the last value.
+            # entry for the non-fc row. this could be CHANGED (which has 3 values) or ADDED (which has 2 value),
+            # but either way it's the second to last value.
             if (non_fc_clear_entry[0] in {DiffType.ADDED_CLEAR, DiffType.CHANGED_CLEAR} and
                     fc_clear_entry[0] == DiffType.ADDED_CLEAR):
                 add_all_entries = False
-                clear_diffs.append((DiffType.ADDED_CLEAR, player_name, trimmed_map_name, non_fc_clear_entry[-1]))
+                clear_diffs.append((DiffType.ADDED_CLEAR, player_name, trimmed_map_name, non_fc_clear_entry[-2]))
 
         if add_all_entries:
             # otherwise, add a diff for each entry

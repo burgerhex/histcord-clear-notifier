@@ -15,10 +15,10 @@ def main(args):
         with timing.Timer("Loading previous and current states... "):
             state_sheet, previous_state = sheets.load_previous_state_from_state_sheet(gc)
             current_clears_sheet = sheets.load_current_clears_from_main_sheet(gc)
-            current_state = clears.get_current_state_from_sheet_values(current_clears_sheet)
+            current_state, map_difficulties = clears.get_current_state_and_maps_from_sheet_values(current_clears_sheet)
 
         with timing.Timer("Calculating diffs... "):
-            diff_list = clears.get_state_diff_list(previous_state, current_state)
+            diff_list = clears.get_state_diff_list(previous_state, current_state, map_difficulties)
 
         if diff_list:
             with timing.Timer("Printing messages...\n" if args.print else "Sending Discord messages... "):

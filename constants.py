@@ -2,6 +2,8 @@ import enum
 
 MIN_PLAYER_COL_INDEX = 4
 MIN_REQUIRED_ROWS = 2
+FIRST_REAL_MAP_ROW_INDEX = 9
+FIRST_REAL_MAP_STAR_DIFFICULTY = 8
 MAP_PREFIXES_TO_IGNORE = [
     "# of Challenges / People / Clears",
     "⭐⭐⭐⭐⭐"

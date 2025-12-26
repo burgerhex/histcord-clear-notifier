@@ -76,32 +76,34 @@ def diff_to_message(diff_type, values):
 
     match diff_type:
         case DiffType.ADDED_CLEAR:
-            player_name, map_name, cell_value = values
+            player_name, map_name, cell_value, map_difficulty = values
             clear_type = clear_types.cell_value_to_clear_type(cell_value)
             if clear_type == ClearType.OTHER:
-                return (f"⚠️ An unrecognized value ({cell_value}) was added to {player_name}'s cell for {map_name}!",
+                return (f"⚠️ An unrecognized value ({cell_value}) was added to {player_name}'s cell for {map_name} "
+                        f"({map_difficulty}*)!",
                         NotificationType.SECONDARY)
             else:
                 clear_action, _ = clear_type_to_action_and_tier(clear_type)
-                return f"🎉 {player_name} {clear_action} {map_name}!", NotificationType.PRIMARY
+                return f"🎉 {player_name} {clear_action} {map_name} ({map_difficulty}*)!", NotificationType.PRIMARY
 
         case DiffType.REMOVED_CLEAR:
-            player_name, map_name, old_cell_value = values
+            player_name, map_name, old_cell_value, map_difficulty = values
             clear_type = clear_types.cell_value_to_clear_type(old_cell_value)
-            return (f"🔴 {player_name}'s clear of {map_name} was REMOVED (was {old_cell_value} ({clear_type}))!",
+            return (f"🔴 {player_name}'s clear of {map_name} ({map_difficulty}*) was REMOVED "
+                    f"(was {old_cell_value} ({clear_type}))!",
                     NotificationType.SECONDARY)
 
         case DiffType.CHANGED_CLEAR:
-            player_name, map_name, old_cell_value, new_cell_value = values
+            player_name, map_name, old_cell_value, new_cell_value, map_difficulty = values
             old_clear_type = clear_types.cell_value_to_clear_type(old_cell_value)
             new_clear_type = clear_types.cell_value_to_clear_type(new_cell_value)
             _, old_tier = clear_type_to_action_and_tier(old_clear_type)
             new_action, new_tier = clear_type_to_action_and_tier(new_clear_type)
             if new_tier > old_tier:
-                return f"🎉 {player_name} {new_action} {map_name}!", NotificationType.PRIMARY
+                return f"🎉 {player_name} {new_action} {map_name} ({map_difficulty}*)!", NotificationType.PRIMARY
             else:
-                return (f"🟡 {player_name}'s clear of {map_name} was changed from {old_cell_value} ({old_clear_type}) "
-                        f"to {new_cell_value} ({new_clear_type})",
+                return (f"🟡 {player_name}'s clear of {map_name} ({map_difficulty}*) was changed from "
+                        f"{old_cell_value} ({old_clear_type}) to {new_cell_value} ({new_clear_type})",
                         NotificationType.SECONDARY)
 
         case DiffType.ADDED_PLAYER:
@@ -115,14 +117,15 @@ def diff_to_message(diff_type, values):
             return f"🤷 Player {old_player_name} was RENAMED to {new_player_name}!", NotificationType.SECONDARY
 
         case DiffType.ADDED_MAP:
-            map_name, = values
-            return f"🗺️ A new map was added: {map_name}", NotificationType.PRIMARY
+            map_name, map_difficulty = values
+            return f"🗺️ A new map was added: {map_name} ({map_difficulty}*)", NotificationType.PRIMARY
         case DiffType.REMOVED_MAP:
             map_name, = values
             return f"❌ A map was removed: {map_name}", NotificationType.PRIMARY
         case DiffType.RENAMED_MAP:
-            old_map_name, new_map_name = values
-            return f"📋 Map {old_map_name} was RENAMED to {new_map_name}!", NotificationType.SECONDARY
+            old_map_name, new_map_name, map_difficulty = values
+            return (f"📋 Map {old_map_name} was RENAMED to {new_map_name} ({map_difficulty}*)!",
+                    NotificationType.SECONDARY)
 
     print(f"ERROR: unknown diff type {diff_type} (values: {values})")
     sys.exit(1)
