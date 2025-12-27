@@ -5,7 +5,8 @@ import time
 import requests
 
 import clear_types
-from constants import DiffType, ClearType, NotificationType
+from constants import DiffType, ClearType, NotificationType, FULL_CLEAR_EMOJI, SILVER_EMOJI, GOLDEN_EMOJI, CLEAR_EMOJI, \
+    ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS
 
 
 def send_diff_messages_to_webhook(diff_list, only_print=False):
@@ -45,22 +46,22 @@ def format_player_or_map_name(value):
 # a clear "tier" is simply a way to re-notify when clears are updated.
 # for example, a non-video clear changing to a video clear would not notify because they're both tier 1,
 # but a full clear changing to a golden would notify because full clear (2) is a lower tier than golden (4).
-def clear_type_to_action_and_tier(clear_type):
+def clear_type_to_action_tier_emoji(clear_type):
     match clear_type:
         case ClearType.NO_VIDEO | ClearType.VIDEO | ClearType.OTHER:
-            return "cleared", 1
+            return "cleared", 1, CLEAR_EMOJI
         case ClearType.CREATOR:
-            return "cleared their own map,", 1
+            return "cleared their own map,", 1, CLEAR_EMOJI
         case ClearType.NO_VIDEO_FC | ClearType.VIDEO_FC | ClearType.VIDEO_AND_FC:
-            return "full cleared", 2
+            return "full cleared", 2, FULL_CLEAR_EMOJI
         case ClearType.CREATOR_FC:
-            return "full cleared their own map,", 2
+            return "full cleared their own map,", 2, FULL_CLEAR_EMOJI
         case ClearType.ALL_SILVERS | ClearType.ALL_SILVERS_AND_FC:
-            return "got all segments deathless in", 3
+            return "got all segments deathless in", 3, SILVER_EMOJI
         case ClearType.GOLDEN | ClearType.GOLDEN_AND_FC:
-            return "GOLDENED", 4
+            return "GOLDENED", 4, GOLDEN_EMOJI
         case ClearType.GOLDEN_FC:
-            return "FULL CLEAR GOLDENED", 5
+            return "FULL CLEAR GOLDENED", 5, ANIMATED_GOLDEN_EMOJI
 
     print(f"ERROR: unknown clear type {clear_type}")
     sys.exit(1)
@@ -77,19 +78,21 @@ def diff_to_message(diff_type, values):
     match diff_type:
         case DiffType.ADDED_CLEAR:
             player_name, map_name, cell_value, map_difficulty = values
+            map_emoji = STAR_EMOJIS[map_difficulty]
             clear_type = clear_types.cell_value_to_clear_type(cell_value)
             if clear_type == ClearType.OTHER:
-                return (f"⚠️ An unrecognized value ({cell_value}) was added to {player_name}'s cell for {map_name} "
-                        f"({map_difficulty}*)!",
+                return (f"⚠️ An unrecognized value ({cell_value}) was added to {player_name}'s cell for "
+                        f"{map_emoji} {map_name}!",
                         NotificationType.SECONDARY)
             else:
-                clear_action, _ = clear_type_to_action_and_tier(clear_type)
-                return f"🎉 {player_name} {clear_action} {map_name} ({map_difficulty}*)!", NotificationType.PRIMARY
+                clear_action, _, emoji = clear_type_to_action_tier_emoji(clear_type)
+                return f"{emoji} {player_name} {clear_action} {map_emoji} {map_name}!", NotificationType.PRIMARY
 
         case DiffType.REMOVED_CLEAR:
             player_name, map_name, old_cell_value, map_difficulty = values
             clear_type = clear_types.cell_value_to_clear_type(old_cell_value)
-            return (f"🔴 {player_name}'s clear of {map_name} ({map_difficulty}*) was REMOVED "
+            map_emoji = STAR_EMOJIS[map_difficulty]
+            return (f"🔴 {player_name}'s clear of {map_emoji} {map_name} was REMOVED "
                     f"(was {old_cell_value} ({clear_type}))!",
                     NotificationType.SECONDARY)
 
@@ -97,12 +100,14 @@ def diff_to_message(diff_type, values):
             player_name, map_name, old_cell_value, new_cell_value, map_difficulty = values
             old_clear_type = clear_types.cell_value_to_clear_type(old_cell_value)
             new_clear_type = clear_types.cell_value_to_clear_type(new_cell_value)
-            _, old_tier = clear_type_to_action_and_tier(old_clear_type)
-            new_action, new_tier = clear_type_to_action_and_tier(new_clear_type)
+            _, old_tier, _ = clear_type_to_action_tier_emoji(old_clear_type)
+            new_action, new_tier, new_emoji = clear_type_to_action_tier_emoji(new_clear_type)
+            map_emoji = STAR_EMOJIS[map_difficulty]
             if new_tier > old_tier:
-                return f"🎉 {player_name} {new_action} {map_name} ({map_difficulty}*)!", NotificationType.PRIMARY
+                return (f"{new_emoji} {player_name} {new_action} {map_emoji} {map_name}!",
+                        NotificationType.PRIMARY)
             else:
-                return (f"🟡 {player_name}'s clear of {map_name} ({map_difficulty}*) was changed from "
+                return (f"🟡 {player_name}'s clear of {map_emoji} {map_name} was changed from "
                         f"{old_cell_value} ({old_clear_type}) to {new_cell_value} ({new_clear_type})",
                         NotificationType.SECONDARY)
 
@@ -118,13 +123,15 @@ def diff_to_message(diff_type, values):
 
         case DiffType.ADDED_MAP:
             map_name, map_difficulty = values
-            return f"🗺️ A new map was added: {map_name} ({map_difficulty}*)", NotificationType.PRIMARY
+            map_emoji = STAR_EMOJIS[map_difficulty]
+            return f"🗺️ A new map was added: {map_emoji} {map_name}", NotificationType.PRIMARY
         case DiffType.REMOVED_MAP:
             map_name, = values
             return f"❌ A map was removed: {map_name}", NotificationType.PRIMARY
         case DiffType.RENAMED_MAP:
             old_map_name, new_map_name, map_difficulty = values
-            return (f"📋 Map {old_map_name} was RENAMED to {new_map_name} ({map_difficulty}*)!",
+            map_emoji = STAR_EMOJIS[map_difficulty]
+            return (f"📋 Map {old_map_name} was RENAMED to {map_emoji} {new_map_name}!",
                     NotificationType.SECONDARY)
 
     print(f"ERROR: unknown diff type {diff_type} (values: {values})")
