@@ -5,8 +5,8 @@ import time
 import requests
 
 import clear_types
-from constants import DiffType, ClearType, NotificationType, FULL_CLEAR_EMOJI, SILVER_EMOJI, GOLDEN_EMOJI, CLEAR_EMOJI, \
-    ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS
+from constants import DiffType, ClearType, NotificationType, FULL_CLEAR_EMOJI, SILVER_EMOJI, GOLDEN_EMOJI, \
+    CLEAR_EMOJI, ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS
 
 
 def send_diff_messages_to_webhook(diff_list, only_print=False):
