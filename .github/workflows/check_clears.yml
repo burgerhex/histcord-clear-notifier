@@ -30,5 +30,4 @@ jobs:
           GOOGLE_CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
           STATE_SHEET_ID: ${{ secrets.STATE_SHEET_ID }}
           CLEARS_SHEET_ID: ${{ secrets.CLEARS_SHEET_ID }}
-          CLEARS_PAGE_NAME: ${{ secrets.CLEARS_PAGE_NAME }}
         run: python main.py

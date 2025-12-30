@@ -5,7 +5,7 @@ import sys
 import gspread
 from google.oauth2.service_account import Credentials
 
-from constants import MIN_REQUIRED_ROWS
+from constants import MIN_REQUIRED_ROWS, CLEARS_PAGE_NAME, CLD_PAGE_NAME
 
 _SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
@@ -80,15 +80,22 @@ def load_previous_state_from_state_sheet(gc):
 
 
 def load_current_clears_from_main_sheet(gc):
+    return load_page_from_main_sheet(gc, CLEARS_PAGE_NAME)
+
+
+def load_cld_from_main_sheet(gc):
+    return load_page_from_main_sheet(gc, CLD_PAGE_NAME)
+
+
+def load_page_from_main_sheet(gc, page_name):
     clears_sheet_id = os.environ.get('CLEARS_SHEET_ID')
-    clears_page_name = os.environ.get('CLEARS_PAGE_NAME')
 
     try:
         target_sh = gc.open_by_key(clears_sheet_id)
-        worksheet = target_sh.worksheet(clears_page_name)
+        worksheet = target_sh.worksheet(page_name)
         return worksheet.get_all_values()
     except gspread.exceptions.WorksheetNotFound:
-        print(f"ERROR: Worksheet '{clears_page_name}' not found in sheet '{clears_sheet_id}'.")
+        print(f"ERROR: Worksheet '{page_name}' not found in sheet '{clears_sheet_id}'.")
         sys.exit(1)
     except Exception as e:
         print(f"ERROR: Failed to read target sheet: {e}")

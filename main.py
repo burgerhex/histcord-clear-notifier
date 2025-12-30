@@ -22,7 +22,7 @@ def main(args):
 
         if diff_list:
             with timing.Timer("Printing messages...\n" if args.print else "Sending Discord messages... "):
-                discord.send_diff_messages_to_webhook(diff_list, args.print)
+                discord.send_diff_messages_to_webhook(diff_list, gc, args.print)
             if args.dry_run:
                 print("Dry run - not saving current state to state sheet")
             else:

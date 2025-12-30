@@ -2,6 +2,7 @@ import itertools
 import sys
 from collections import defaultdict
 
+import helpers
 from constants import DiffType, MAP_PREFIXES_TO_IGNORE, MIN_PLAYER_COL_INDEX, FIRST_REAL_MAP_ROW_INDEX, \
     FIRST_REAL_MAP_STAR_DIFFICULTY
 
@@ -124,14 +125,7 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
         old_val = previous_state.get(old_key, "")
 
         map_difficulty = map_difficulties[map_name]
-        # get rid of author and weird newlines
-        map_name_no_author = map_name.replace("\n", " ").replace("  ", " ").split(" by ")[0]
-        clear_type = "[C]"  # default
-        trimmed_map_name = map_name_no_author
-        if map_name_no_author.endswith("]"):
-            i = map_name_no_author.rfind("[")
-            clear_type = map_name_no_author[i:]
-            trimmed_map_name = map_name_no_author[:i - 1]
+        trimmed_map_name, clear_type = helpers.trim_map_name(map_name)
 
         if new_val and not old_val:
             clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add((
