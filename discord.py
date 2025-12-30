@@ -129,7 +129,7 @@ def diff_to_message(diff_type, values, gc, golden_tiers_obj):
 
         case DiffType.ADDED_PLAYER:
             player_name, = values
-            return f"👋 A new player was added: {format_player_or_map_name(player_name)}", NotificationType.SECONDARY
+            return f"👋 A new player was added: {format_player_or_map_name(player_name)}", NotificationType.PRIMARY
         case DiffType.REMOVED_PLAYER:
             player_name, = values
             return f"🪦 A player was removed: {format_player_or_map_name(player_name)}", NotificationType.SECONDARY
