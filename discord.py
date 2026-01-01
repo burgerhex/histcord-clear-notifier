@@ -91,9 +91,9 @@ def normal_clear_message(player_name, map_name, map_emoji, clear_type, gc, golde
 def diff_to_message(diff_type, values, gc, golden_tiers_obj):
     match diff_type:
         case DiffType.ADDED_CLEAR:
-            player_name, map_name, cell_value, map_difficulty = values
+            player_name, map_name, map_clear_type, cell_value, map_difficulty = values
             map_emoji = STAR_EMOJIS[map_difficulty]
-            clear_type = clear_types.cell_value_to_clear_type(cell_value)
+            clear_type = clear_types.cell_value_to_clear_type(cell_value, map_clear_type)
             if clear_type == ClearType.OTHER:
                 return (f"⚠️ An unrecognized value ({cell_value}) was added to "
                         f"{format_player_or_map_name(player_name)}'s cell for "
@@ -104,17 +104,17 @@ def diff_to_message(diff_type, values, gc, golden_tiers_obj):
                         NotificationType.PRIMARY)
 
         case DiffType.REMOVED_CLEAR:
-            player_name, map_name, old_cell_value, map_difficulty = values
-            clear_type = clear_types.cell_value_to_clear_type(old_cell_value)
+            player_name, map_name, map_clear_type, old_cell_value, map_difficulty = values
+            clear_type = clear_types.cell_value_to_clear_type(old_cell_value, map_clear_type)
             map_emoji = STAR_EMOJIS[map_difficulty]
             return (f"🔴 {format_player_or_map_name(player_name)}'s clear of {map_emoji} "
                     f"{format_player_or_map_name(map_name)} was REMOVED (was {old_cell_value} ({clear_type}))!",
                     NotificationType.SECONDARY)
 
         case DiffType.CHANGED_CLEAR:
-            player_name, map_name, old_cell_value, new_cell_value, map_difficulty = values
-            old_clear_type = clear_types.cell_value_to_clear_type(old_cell_value)
-            new_clear_type = clear_types.cell_value_to_clear_type(new_cell_value)
+            player_name, map_name, map_clear_type, old_cell_value, new_cell_value, map_difficulty = values
+            old_clear_type = clear_types.cell_value_to_clear_type(old_cell_value, map_clear_type)
+            new_clear_type = clear_types.cell_value_to_clear_type(new_cell_value, map_clear_type)
             _, old_tier, _ = clear_type_to_action_tier_emoji(old_clear_type)
             _, new_tier, _ = clear_type_to_action_tier_emoji(new_clear_type)
             map_emoji = STAR_EMOJIS[map_difficulty]
