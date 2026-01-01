@@ -42,7 +42,7 @@ def get_golden_tiers(gc):
             trimmed_map_name, clear_type = helpers.trim_map_name(map_name)
             if clear_type == "[FC]":
                 c_tier, fc_tier = "", c_tier
-            elif not fc_tier:
+            elif not fc_tier or fc_tier == "<<<":
                 fc_tier = c_tier
 
             if trimmed_map_name not in golden_tiers:
