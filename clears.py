@@ -43,14 +43,7 @@ def get_current_state_and_maps_from_sheet_values(all_values):
 
         map_difficulties[map_name] = map_star_difficulty
         first_player_i = MIN_PLAYER_COL_INDEX
-        # use islice again to start at the first player column
-        for player_index, cell_value in enumerate(itertools.islice(row, first_player_i, None), start=first_player_i):
-            cell_value = cell_value.strip()
-            if not cell_value:
-                continue
-
-            unique_key = (player_names[player_index], map_name)
-            current_state[unique_key] = cell_value
+        helpers.parse_data_row(row, first_player_i, current_state, player_names)
 
     return current_state, map_difficulties
 

@@ -10,7 +10,7 @@ from constants import DiffType, ClearType, NotificationType, FULL_CLEAR_EMOJI, S
     CLEAR_EMOJI, ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS
 
 
-def send_diff_messages_to_webhook(diff_list, gc, only_print=False):
+def send_diff_messages_to_webhook(diff_list, only_print=False):
     primary_discord_url = os.environ.get('PRIMARY_DISCORD_WEBHOOK_URL')
     secondary_discord_url = os.environ.get('SECONDARY_DISCORD_WEBHOOK_URL')
 
@@ -18,15 +18,12 @@ def send_diff_messages_to_webhook(diff_list, gc, only_print=False):
         print("Warning: PRIMARY_DISCORD_WEBHOOK_URL or SECONDARY_DISCORD_WEBHOOK_URL not set. Skipping notification.")
         return
 
-    # create an "object" reference to hold golden tiers if they're required
-    golden_tiers_obj = [None]
-
     for i, (diff_type, *values) in enumerate(diff_list):
         if i > 0 and not only_print:
             # webhooks have a rate limit of 5 requests per 2 seconds per webhook
             # send 4 requests per 2 seconds just to be safe
             time.sleep(0.5)
-        msg, notif_type = diff_to_message(diff_type, values, gc, golden_tiers_obj)
+        msg, notif_type = diff_to_message(diff_type, values)
         if only_print:
             print("[PRIMARY]  " if notif_type == NotificationType.PRIMARY else "[SECONDARY]", msg)
         else:
@@ -71,24 +68,24 @@ def clear_type_to_action_tier_emoji(clear_type):
     sys.exit(1)
 
 
-def normal_clear_message(player_name, map_name, map_emoji, clear_type, gc, golden_tiers_obj):
+def normal_clear_message(player_name, map_name, map_emoji, clear_type):
     clear_action, _, emoji = clear_type_to_action_tier_emoji(clear_type)
     msg = (f"{emoji} {format_player_or_map_name(player_name)} {clear_action} {map_emoji} "
            f"{format_player_or_map_name(map_name)}")
+
     if clear_type in [ClearType.GOLDEN, ClearType.GOLDEN_AND_FC, ClearType.GOLDEN_FC]:
-        if golden_tiers_obj[0] is None:
-            print("Getting CLD...")
-            golden_tiers_obj[0] = goldens.get_golden_tiers(gc)
-        golden_tiers = golden_tiers_obj[0]
+        # get_golden_tiers is cached, so this is fine
+        golden_tiers = goldens.get_golden_tiers()
         index = 1 if clear_type == ClearType.GOLDEN_FC else 0
         if map_name in golden_tiers and golden_tiers[map_name][index]:
             msg += f" ({golden_tiers[map_name][index]})"
         else:
             print(f"WARNING: No golden tier found for map {map_name} [{'FC' if index == 1 else 'C'}]")
+
     return msg + "!"
 
 
-def diff_to_message(diff_type, values, gc, golden_tiers_obj):
+def diff_to_message(diff_type, values):
     match diff_type:
         case DiffType.ADDED_CLEAR:
             player_name, map_name, map_clear_type, cell_value, map_difficulty = values
@@ -100,7 +97,7 @@ def diff_to_message(diff_type, values, gc, golden_tiers_obj):
                         f"{map_emoji} {format_player_or_map_name(map_name)}!",
                         NotificationType.SECONDARY)
             else:
-                return (normal_clear_message(player_name, map_name, map_emoji, clear_type, gc, golden_tiers_obj),
+                return (normal_clear_message(player_name, map_name, map_emoji, clear_type),
                         NotificationType.PRIMARY)
 
         case DiffType.REMOVED_CLEAR:
@@ -119,7 +116,7 @@ def diff_to_message(diff_type, values, gc, golden_tiers_obj):
             _, new_tier, _ = clear_type_to_action_tier_emoji(new_clear_type)
             map_emoji = STAR_EMOJIS[map_difficulty]
             if new_tier > old_tier:
-                return (normal_clear_message(player_name, map_name, map_emoji, new_clear_type, gc, golden_tiers_obj),
+                return (normal_clear_message(player_name, map_name, map_emoji, new_clear_type),
                         NotificationType.PRIMARY)
             else:
                 return (f"🟡 {format_player_or_map_name(player_name)}'s clear of {map_emoji} "

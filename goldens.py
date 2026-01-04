@@ -1,3 +1,4 @@
+import functools
 import itertools
 
 import helpers
@@ -27,8 +28,9 @@ def populate_golden_tier(golden_tiers, trimmed_map_name, index, new_tier_str):
                 tier_list[index] = new_tier_str
 
 
-def get_golden_tiers(gc):
-    cld = sheets.load_cld_from_main_sheet(gc)
+@functools.cache
+def get_golden_tiers():
+    cld = sheets.load_cld_from_main_sheet()
 
     golden_tiers = {}
 

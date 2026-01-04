@@ -10,11 +10,9 @@ import timing
 
 def main(args):
     with timing.Timer("Starting script!\n\n", lambda d: f"\nScript done in {d:.3f} sec!"):
-        gc = sheets.authenticate_gspread()
-
         with timing.Timer("Loading previous and current states... "):
-            state_sheet, previous_state = sheets.load_previous_state_from_state_sheet(gc)
-            current_clears_sheet = sheets.load_current_clears_from_main_sheet(gc)
+            state_sheet, previous_state = sheets.load_previous_state_from_state_sheet()
+            current_clears_sheet = sheets.load_current_clears_from_main_sheet()
             current_state, map_difficulties = clears.get_current_state_and_maps_from_sheet_values(current_clears_sheet)
 
         with timing.Timer("Calculating diffs... "):
@@ -22,7 +20,7 @@ def main(args):
 
         if diff_list:
             with timing.Timer("Printing messages...\n" if args.print else "Sending Discord messages... "):
-                discord.send_diff_messages_to_webhook(diff_list, gc, args.print)
+                discord.send_diff_messages_to_webhook(diff_list, args.print)
             if args.dry_run:
                 print("Dry run - not saving current state to state sheet")
             else:

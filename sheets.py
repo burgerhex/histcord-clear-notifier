@@ -1,3 +1,5 @@
+import functools
+import itertools
 import json
 import os
 import sys
@@ -5,6 +7,7 @@ import sys
 import gspread
 from google.oauth2.service_account import Credentials
 
+import helpers
 from constants import MIN_REQUIRED_ROWS, CLEARS_PAGE_NAME, CLD_PAGE_NAME
 
 _SCOPES = [
@@ -13,7 +16,8 @@ _SCOPES = [
 ]
 
 
-def authenticate_gspread():
+@functools.cache
+def get_gspread_client():
     creds_json_string = os.environ.get('GOOGLE_CREDS_JSON')
 
     if not creds_json_string:
@@ -36,9 +40,10 @@ def authenticate_gspread():
         sys.exit(1)
 
 
-def load_previous_state_from_state_sheet(gc):
+def load_previous_state_from_state_sheet():
     state_sheet_id = os.environ.get('STATE_SHEET_ID')
 
+    gc = get_gspread_client()
     previous_state = {}
 
     try:
@@ -53,20 +58,13 @@ def load_previous_state_from_state_sheet(gc):
             print(f"ERROR: State sheet has too few rows ({len(state_table)})")
             sys.exit(1)
 
-        player_names = state_table[0][1:]
+        # contains the empty top left cell, but we'll keep this in mind
+        player_names = state_table[0]
 
-        for data_row in state_table[1:]:
-            if not data_row or not data_row[0]:
-                continue
-
-            map_name = data_row[0]
-
-            for i, value in enumerate(data_row[1:]):
-                value = value.strip()
-                if i < len(player_names) and value:
-                    player_name = player_names[i]
-                    unique_key = (player_name, map_name)
-                    previous_state[unique_key] = value
+        # start from the first data row
+        for data_row in itertools.islice(state_table, 1, None):
+            if data_row and data_row[0]:
+                helpers.parse_data_row(data_row, 1, previous_state, player_names)
 
         return state_sheet, previous_state
 
@@ -79,16 +77,18 @@ def load_previous_state_from_state_sheet(gc):
         sys.exit(1)
 
 
-def load_current_clears_from_main_sheet(gc):
-    return load_page_from_main_sheet(gc, CLEARS_PAGE_NAME)
+def load_current_clears_from_main_sheet():
+    return load_page_from_main_sheet(CLEARS_PAGE_NAME)
 
 
-def load_cld_from_main_sheet(gc):
-    return load_page_from_main_sheet(gc, CLD_PAGE_NAME)
+def load_cld_from_main_sheet():
+    return load_page_from_main_sheet(CLD_PAGE_NAME)
 
 
-def load_page_from_main_sheet(gc, page_name):
+def load_page_from_main_sheet(page_name):
     clears_sheet_id = os.environ.get('CLEARS_SHEET_ID')
+
+    gc = get_gspread_client()
 
     try:
         target_sh = gc.open_by_key(clears_sheet_id)
