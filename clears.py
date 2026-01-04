@@ -151,7 +151,7 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
                     fc_clear_entry[0] == DiffType.ADDED_CLEAR):
                 add_all_entries = False
                 clear_diffs.append(
-                    (DiffType.ADDED_CLEAR, player_name, trimmed_map_name, fc_clear_entry[1], non_fc_clear_entry[-2]))
+                    (DiffType.ADDED_CLEAR, player_name, trimmed_map_name, fc_clear_entry[1], *non_fc_clear_entry[-2:]))
 
         if add_all_entries:
             # otherwise, add a diff for each entry
