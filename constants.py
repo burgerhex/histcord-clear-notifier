@@ -31,6 +31,17 @@ FULL_CLEAR_EMOJI = "<:fullclear:1324092309431783515>"
 GOLDEN_EMOJI = "<:goldenberry:916877000755535953>"
 ANIMATED_GOLDEN_EMOJI = "<a:anigoldenberry:454892769731805215>"
 SILVER_EMOJI = "<:silverberry:916877000684232716>"
+STAR_ROLE_PINGS = [
+    "",  # keep index 0 empty so we can index directly with the star difficulty
+    "<@&1457588775873155175>",
+    "<@&1457588755765526649>",
+    "<@&1457588736979107912>",
+    "<@&1457588721820893338>",
+    "<@&1457588698563739709>",
+    "<@&1457588657853567117>",
+    "<@&1457588637842538547>",
+    "<@&1457588424700596441>",
+]
 
 
 class DiffType(enum.Enum):

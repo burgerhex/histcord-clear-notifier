@@ -7,7 +7,7 @@ import requests
 import clear_types
 import goldens
 from constants import DiffType, ClearType, NotificationType, FULL_CLEAR_EMOJI, SILVER_EMOJI, GOLDEN_EMOJI, \
-    CLEAR_EMOJI, ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS
+    CLEAR_EMOJI, ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS, STAR_ROLE_PINGS
 
 
 def send_diff_messages_to_webhook(diff_list, only_print=False):
@@ -68,7 +68,7 @@ def clear_type_to_action_tier_emoji(clear_type):
     sys.exit(1)
 
 
-def normal_clear_message(player_name, map_name, map_emoji, clear_type):
+def normal_clear_message(player_name, map_name, map_emoji, clear_type, map_difficulty):
     clear_action, _, emoji = clear_type_to_action_tier_emoji(clear_type)
     msg = (f"{emoji} {format_player_or_map_name(player_name)} {clear_action} {map_emoji} "
            f"{format_player_or_map_name(map_name)}")
@@ -82,7 +82,7 @@ def normal_clear_message(player_name, map_name, map_emoji, clear_type):
         else:
             print(f"WARNING: No golden tier found for map {map_name} [{'FC' if index == 1 else 'C'}]")
 
-    return msg + "!"
+    return f"{msg}! {STAR_ROLE_PINGS[map_difficulty]}"
 
 
 def diff_to_message(diff_type, values):
@@ -97,7 +97,7 @@ def diff_to_message(diff_type, values):
                         f"{map_emoji} {format_player_or_map_name(map_name)}!",
                         NotificationType.SECONDARY)
             else:
-                return (normal_clear_message(player_name, map_name, map_emoji, clear_type),
+                return (normal_clear_message(player_name, map_name, map_emoji, clear_type, map_difficulty),
                         NotificationType.PRIMARY)
 
         case DiffType.REMOVED_CLEAR:
@@ -116,7 +116,7 @@ def diff_to_message(diff_type, values):
             _, new_tier, _ = clear_type_to_action_tier_emoji(new_clear_type)
             map_emoji = STAR_EMOJIS[map_difficulty]
             if new_tier > old_tier:
-                return (normal_clear_message(player_name, map_name, map_emoji, new_clear_type),
+                return (normal_clear_message(player_name, map_name, map_emoji, new_clear_type, map_difficulty),
                         NotificationType.PRIMARY)
             else:
                 return (f"🟡 {format_player_or_map_name(player_name)}'s clear of {map_emoji} "
