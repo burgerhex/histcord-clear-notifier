@@ -7,7 +7,7 @@ import requests
 import clear_types
 import goldens
 from constants import DiffType, ClearType, NotificationType, FULL_CLEAR_EMOJI, SILVER_EMOJI, GOLDEN_EMOJI, \
-    CLEAR_EMOJI, ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS, STAR_ROLE_PINGS
+    CLEAR_EMOJI, ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS, STAR_ROLE_PINGS, GOLDEN_ROLE_PING
 
 
 def send_diff_messages_to_webhook(diff_list, only_print=False):
@@ -72,8 +72,10 @@ def normal_clear_message(player_name, map_name, map_emoji, clear_type, map_diffi
     clear_action, _, emoji = clear_type_to_action_tier_emoji(clear_type)
     msg = (f"{emoji} {format_player_or_map_name(player_name)} {clear_action} {map_emoji} "
            f"{format_player_or_map_name(map_name)}")
+    is_golden = False
 
     if clear_type in [ClearType.GOLDEN, ClearType.GOLDEN_AND_FC, ClearType.GOLDEN_FC]:
+        is_golden = True
         # get_golden_tiers is cached, so this is fine
         golden_tiers = goldens.get_golden_tiers()
         index = 1 if clear_type == ClearType.GOLDEN_FC else 0
@@ -82,7 +84,7 @@ def normal_clear_message(player_name, map_name, map_emoji, clear_type, map_diffi
         else:
             print(f"WARNING: No golden tier found for map {map_name} [{'FC' if index == 1 else 'C'}]")
 
-    return f"{msg}! {STAR_ROLE_PINGS[map_difficulty]}"
+    return f"{msg}! {STAR_ROLE_PINGS[map_difficulty]} {GOLDEN_ROLE_PING if is_golden else ''}"
 
 
 def diff_to_message(diff_type, values):
