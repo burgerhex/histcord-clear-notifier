@@ -76,7 +76,7 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
                    [(DiffType.REMOVED_PLAYER, player) for player in removed_players] + \
                    [(DiffType.RENAMED_PLAYER, old_player, new_player) for new_player, old_player in
                     player_renamings.items()]
-    # can't really get star value of a removed map unless we also store that in the state sheet. which we could do,
+    # can't really get the star value of a removed map unless we also store that in the state sheet. which we could do,
     # but doesn't really seem necessary right now.
     map_diffs = [(DiffType.ADDED_MAP, map_name, map_difficulties[map_name]) for map_name in added_maps] + \
                 [(DiffType.REMOVED_MAP, map_name) for map_name in removed_maps] + \
@@ -131,7 +131,7 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
                 (DiffType.CHANGED_CLEAR, clear_type, old_val, new_val, map_difficulty))
 
     clear_diffs = []
-    # we only care about if a set has 2 entries, one is FC and one is C, the FC one is DiffType.ADDED_CLEAR,
+    # we only care about if a set has 2 entries, one is FC, one is C, the FC one is DiffType.ADDED_CLEAR,
     # and the C one is CHANGED_CLEAR or ADDED_CLEAR.
     # as of the time of writing, there can only be 3 "clear types": "[C]", "[FC]", and "[All Maps]" (specific to
     # devil's den). these should *probably* never increase, and the devil's den only has one entry, so the most we
@@ -145,7 +145,7 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
                 (clear_entry1, clear_entry2) if clear_entry1[1] == "[C]" else (clear_entry2, clear_entry1)
             # if we have 2 entries, one C which is added or changed, and one FC which is added, then we can count
             # this as essentially one new full clear with one diff. we want to get the "fc" cell value from the
-            # entry for the non-fc row. this could be CHANGED (which has 3 values) or ADDED (which has 2 value),
+            # entry for the non-fc row. this could be CHANGED (which has 3 values) or ADDED (which has 2 values),
             # but either way it's the second to last value.
             if (non_fc_clear_entry[0] in {DiffType.ADDED_CLEAR, DiffType.CHANGED_CLEAR} and
                     fc_clear_entry[0] == DiffType.ADDED_CLEAR):
@@ -187,8 +187,6 @@ def maybe_pair_removed_and_added_entities(removed_dict, added_dict):
     if not removed_dict or not added_dict:
         return {}
 
-    m = len(removed_dict)
-    n = len(added_dict)
     # adjacency list
     graph = defaultdict(set)
 

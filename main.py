@@ -8,6 +8,7 @@ import sheets
 import timing
 
 
+# noinspection PyShadowingNames
 def main(args):
     with timing.Timer("Starting script!\n\n", lambda d: f"\nScript done in {d:.3f} sec!"):
         with timing.Timer("Loading previous and current states... "):
