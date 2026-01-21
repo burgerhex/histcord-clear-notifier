@@ -146,12 +146,14 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
             # if we have 2 entries, one C which is added or changed, and one FC which is added, then we can count
             # this as essentially one new full clear with one diff. we want to get the "fc" cell value from the
             # entry for the non-fc row. this could be CHANGED (which has 3 values) or ADDED (which has 2 values),
-            # but either way it's the second to last value.
+            # but either way it's the second to last value. finally, we want the map difficulty from entry for the fc
+            # row, since this will be the harder one.
             if (non_fc_clear_entry[0] in {DiffType.ADDED_CLEAR, DiffType.CHANGED_CLEAR} and
                     fc_clear_entry[0] == DiffType.ADDED_CLEAR):
                 add_all_entries = False
                 clear_diffs.append(
-                    (DiffType.ADDED_CLEAR, player_name, trimmed_map_name, fc_clear_entry[1], *non_fc_clear_entry[-2:]))
+                    (DiffType.ADDED_CLEAR, player_name, trimmed_map_name,
+                     fc_clear_entry[1], non_fc_clear_entry[-2], fc_clear_entry[-1]))
 
         if add_all_entries:
             # otherwise, add a diff for each entry
