@@ -7,7 +7,8 @@ import requests
 import clear_types
 import goldens
 from constants import DiffType, ClearType, NotificationType, FULL_CLEAR_EMOJI, SILVER_EMOJI, GOLDEN_EMOJI, \
-    CLEAR_EMOJI, ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS, STAR_ROLE_PINGS, GOLDEN_ROLE_PING
+    CLEAR_EMOJI, ANIMATED_GOLDEN_EMOJI, STAR_EMOJIS, STAR_ROLE_PINGS, GOLDEN_ROLE_PING, SILVER_ROLE_PING, \
+    NEW_PLAYER_ROLE_PING
 
 
 def send_diff_messages_to_webhook(diff_list, only_print=False):
@@ -72,10 +73,10 @@ def normal_clear_message(player_name, map_name, map_emoji, clear_type, map_diffi
     clear_action, _, emoji = clear_type_to_action_tier_emoji(clear_type)
     msg = (f"{emoji} {format_player_or_map_name(player_name)} {clear_action} {map_emoji} "
            f"{format_player_or_map_name(map_name)}")
-    is_golden = False
+    secondary_ping = ""
 
     if clear_type in [ClearType.GOLDEN, ClearType.GOLDEN_AND_FC, ClearType.GOLDEN_FC]:
-        is_golden = True
+        secondary_ping = GOLDEN_ROLE_PING
         # get_golden_tiers is cached, so this is fine
         golden_tiers = goldens.get_golden_tiers()
         index = 1 if clear_type == ClearType.GOLDEN_FC else 0
@@ -83,8 +84,10 @@ def normal_clear_message(player_name, map_name, map_emoji, clear_type, map_diffi
             msg += f" ({golden_tiers[map_name][index]})"
         else:
             print(f"WARNING: No golden tier found for map {map_name} [{'FC' if index == 1 else 'C'}]")
+    elif clear_type in [ClearType.ALL_SILVERS, ClearType.ALL_SILVERS_AND_FC]:
+        secondary_ping = SILVER_ROLE_PING
 
-    return f"{msg}! {STAR_ROLE_PINGS[map_difficulty]} {GOLDEN_ROLE_PING if is_golden else ''}"
+    return f"{msg}! {STAR_ROLE_PINGS[map_difficulty]} {secondary_ping}"
 
 
 def diff_to_message(diff_type, values):
@@ -128,7 +131,8 @@ def diff_to_message(diff_type, values):
 
         case DiffType.ADDED_PLAYER:
             player_name, = values
-            return f"👋 A new player was added: {format_player_or_map_name(player_name)}", NotificationType.PRIMARY
+            return (f"👋 A new player was added: {format_player_or_map_name(player_name)} {NEW_PLAYER_ROLE_PING}",
+                    NotificationType.PRIMARY)
         case DiffType.REMOVED_PLAYER:
             player_name, = values
             return f"🪦 A player was removed: {format_player_or_map_name(player_name)}", NotificationType.SECONDARY
