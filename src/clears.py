@@ -66,11 +66,14 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
         new_player_clears[player_name].add(map_name)
         new_map_clearers[map_name].add(player_name)
 
+    # some duplicate work here, but it's not that bad
+    removed_or_renamed_players = old_player_clears.keys() - new_player_clears.keys()
+    removed_or_renamed_maps = old_map_clearers.keys() - new_map_clearers.keys()
     # renaming dicts are new -> old name
     added_players, removed_players, player_renamings = (
-        old_and_new_entities_to_added_removed_renamed(old_player_clears, new_player_clears))
+        old_and_new_entities_to_added_removed_renamed(old_player_clears, new_player_clears, removed_or_renamed_maps))
     added_maps, removed_maps, map_renamings = (
-        old_and_new_entities_to_added_removed_renamed(old_map_clearers, new_map_clearers))
+        old_and_new_entities_to_added_removed_renamed(old_map_clearers, new_map_clearers, removed_or_renamed_players))
 
     player_diffs = [(DiffType.ADDED_PLAYER, player) for player in added_players] + \
                    [(DiffType.REMOVED_PLAYER, player) for player in removed_players] + \
@@ -163,7 +166,9 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
     return player_diffs + map_diffs + clear_diffs
 
 
-def old_and_new_entities_to_added_removed_renamed(old_entities, new_entities):
+# ignore_entities is the "other" type of entity as in the other two params. i.e., if old_ and new_entities are players,
+# then ignore_entities is a list of maps.
+def old_and_new_entities_to_added_removed_renamed(old_entities, new_entities, ignore_entities):
     removed_or_renamed_entities = old_entities.keys() - new_entities.keys()
     added_or_renamed_entities = new_entities.keys() - old_entities.keys()
     removed_or_renamed_entity_values = {entity_name: old_entities[entity_name] for entity_name in
@@ -172,7 +177,8 @@ def old_and_new_entities_to_added_removed_renamed(old_entities, new_entities):
                                       added_or_renamed_entities}
 
     entity_matchings = maybe_pair_removed_and_added_entities(removed_or_renamed_entity_values,
-                                                             added_or_renamed_entity_values)
+                                                             added_or_renamed_entity_values,
+                                                             ignore_entities)
     new_renamed_entities = set(entity_matchings.keys())
     old_renamed_entities = set(entity_matchings.values())
     removed_entities = removed_or_renamed_entities - old_renamed_entities
@@ -185,7 +191,7 @@ def old_and_new_entities_to_added_removed_renamed(old_entities, new_entities):
 # try to pair up removed players or maps with added players or maps to see if they were renamed
 # use kuhn's algorithm for a maximum bipartite matching
 # returns a dict of new name -> old name
-def maybe_pair_removed_and_added_entities(removed_dict, added_dict):
+def maybe_pair_removed_and_added_entities(removed_dict, added_dict, ignore_entities):
     if not removed_dict or not added_dict:
         return {}
 
@@ -200,7 +206,9 @@ def maybe_pair_removed_and_added_entities(removed_dict, added_dict):
     # another possible rare scenario is that a player was truly removed and another player with the same clears was
     # truly added, but this is also extremely rare. helpers and mods should still be told this.
     for removed_entity, clears in removed_dict.items():
+        clears = clears - ignore_entities
         for added_entity, new_clears in added_dict.items():
+            new_clears = new_clears - ignore_entities
             if clears <= new_clears:
                 graph[removed_entity].add(added_entity)
 
