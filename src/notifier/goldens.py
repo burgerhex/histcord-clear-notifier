@@ -1,9 +1,9 @@
 import functools
 import itertools
 
-import helpers
-import sheets
-from constants import MAX_STAR_DIFFICULTY, CLD_COLS_PER_STAR, CLD_MAP_NAME_OFFSET, CLD_INFO_END_OFFSET
+from . import constants
+from .helpers import trim_map_name
+from .sheets import load_cld_from_main_sheet
 
 
 def str_to_tier(s):
@@ -30,7 +30,7 @@ def populate_golden_tier(golden_tiers, trimmed_map_name, index, new_tier_str):
 
 @functools.cache
 def get_golden_tiers():
-    cld = sheets.load_cld_from_main_sheet()
+    cld = load_cld_from_main_sheet()
 
     golden_tiers = {}
 
@@ -38,10 +38,10 @@ def get_golden_tiers():
     cld_rows = itertools.islice(cld, 9, None)
 
     for cld_row in cld_rows:
-        for i in range(MAX_STAR_DIFFICULTY):
-            map_name, c_tier, fc_tier = cld_row[CLD_COLS_PER_STAR * i + CLD_MAP_NAME_OFFSET:
-                                                CLD_COLS_PER_STAR * i + CLD_INFO_END_OFFSET]
-            trimmed_map_name, clear_type = helpers.trim_map_name(map_name)
+        for i in range(constants.MAX_STAR_DIFFICULTY):
+            map_name, c_tier, fc_tier = cld_row[constants.CLD_COLS_PER_STAR * i + constants.CLD_MAP_NAME_OFFSET:
+                                                constants.CLD_COLS_PER_STAR * i + constants.CLD_INFO_END_OFFSET]
+            trimmed_map_name, clear_type = trim_map_name(map_name)
             if clear_type == "[FC]":
                 c_tier, fc_tier = "", c_tier
             elif not fc_tier or fc_tier == "<<<":

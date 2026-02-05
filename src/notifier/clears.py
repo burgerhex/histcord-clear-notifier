@@ -2,13 +2,13 @@ import itertools
 import sys
 from collections import defaultdict
 
-import helpers
-from constants import DiffType, MAP_PREFIXES_TO_IGNORE, MIN_PLAYER_COL_INDEX, FIRST_REAL_MAP_ROW_INDEX, \
-    FIRST_REAL_MAP_STAR_DIFFICULTY
+from . import constants
+from .constants import DiffType
+from .helpers import parse_data_row, trim_map_name
 
 
 def get_current_state_and_maps_from_sheet_values(all_values):
-    if len(all_values) < 1 or len(all_values[0]) < MIN_PLAYER_COL_INDEX:
+    if len(all_values) < 1 or len(all_values[0]) < constants.MIN_PLAYER_COL_INDEX:
         print("ERROR: Sheet is too small or doesn't follow the ID/Label structure.")
         sys.exit(1)
 
@@ -17,11 +17,11 @@ def get_current_state_and_maps_from_sheet_values(all_values):
     map_difficulties = {}
     current_state = {}
     previous_map_empty = False
-    map_star_difficulty = FIRST_REAL_MAP_STAR_DIFFICULTY
+    map_star_difficulty = constants.FIRST_REAL_MAP_STAR_DIFFICULTY
 
     # use islice to start at a certain index. more efficient than making a copy of the entire table
     # (i.e. all_values[first_i:]) or skipping every row up to the first one (if row_i < first_i: continue).
-    for row in itertools.islice(all_values, FIRST_REAL_MAP_ROW_INDEX, None):
+    for row in itertools.islice(all_values, constants.FIRST_REAL_MAP_ROW_INDEX, None):
         # skip empty rows (shouldn't happen, but just in case)
         if not row:
             continue
@@ -29,7 +29,7 @@ def get_current_state_and_maps_from_sheet_values(all_values):
         map_name = row[0]
 
         # skip weird rows
-        if any(map_name.startswith(prefix) for prefix in MAP_PREFIXES_TO_IGNORE):
+        if any(map_name.startswith(prefix) for prefix in constants.MAP_PREFIXES_TO_IGNORE):
             continue
 
         # two empty map names in a row means we've reached a new star difficulty
@@ -42,8 +42,8 @@ def get_current_state_and_maps_from_sheet_values(all_values):
             continue
 
         map_difficulties[map_name] = map_star_difficulty
-        first_player_i = MIN_PLAYER_COL_INDEX
-        helpers.parse_data_row(row, first_player_i, current_state, player_names)
+        first_player_i = constants.MIN_PLAYER_COL_INDEX
+        parse_data_row(row, first_player_i, current_state, player_names)
 
     return current_state, map_difficulties
 
@@ -121,7 +121,7 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
         old_val = previous_state.get(old_key, "")
 
         map_difficulty = map_difficulties[map_name]
-        trimmed_map_name, clear_type = helpers.trim_map_name(map_name)
+        trimmed_map_name, clear_type = trim_map_name(map_name)
 
         if new_val and not old_val:
             clear_diffs_by_player_and_map[(player_name, trimmed_map_name)].add((

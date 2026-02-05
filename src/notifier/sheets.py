@@ -8,8 +8,8 @@ import gspread
 # noinspection PyPackageRequirements
 from google.oauth2.service_account import Credentials
 
-import helpers
-from constants import MIN_REQUIRED_ROWS, CLEARS_PAGE_NAME, CLD_PAGE_NAME
+from . import constants
+from .helpers import parse_data_row
 
 _SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
@@ -55,7 +55,7 @@ def load_previous_state_from_state_sheet():
         if not state_table:
             print("State sheet is empty; initializing empty state.")
             return state_sheet, {}
-        if len(state_table) < MIN_REQUIRED_ROWS:
+        if len(state_table) < constants.MIN_REQUIRED_ROWS:
             print(f"ERROR: State sheet has too few rows ({len(state_table)})")
             sys.exit(1)
 
@@ -65,7 +65,7 @@ def load_previous_state_from_state_sheet():
         # start from the first data row
         for data_row in itertools.islice(state_table, 1, None):
             if data_row and data_row[0]:
-                helpers.parse_data_row(data_row, 1, previous_state, player_names)
+                parse_data_row(data_row, 1, previous_state, player_names)
 
         return state_sheet, previous_state
 
@@ -79,11 +79,11 @@ def load_previous_state_from_state_sheet():
 
 
 def load_current_clears_from_main_sheet():
-    return load_page_from_main_sheet(CLEARS_PAGE_NAME)
+    return load_page_from_main_sheet(constants.CLEARS_PAGE_NAME)
 
 
 def load_cld_from_main_sheet():
-    return load_page_from_main_sheet(CLD_PAGE_NAME)
+    return load_page_from_main_sheet(constants.CLD_PAGE_NAME)
 
 
 def load_page_from_main_sheet(page_name):

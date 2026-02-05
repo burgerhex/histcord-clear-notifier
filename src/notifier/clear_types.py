@@ -1,4 +1,4 @@
-from constants import ClearType
+from .constants import ClearType
 
 
 # returns true if cell_value follows "pattern1 pattern2 ..."
