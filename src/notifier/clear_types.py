@@ -41,7 +41,7 @@ def cell_value_to_clear_type(cell_value, map_clear_type):
         return ClearType.CREATOR_FC
     elif is_clear_type(val, "creator"):
         return ClearType.CREATOR
-    elif is_clear_type(val, "fcg"):
+    elif is_clear_type(val, "fcg") or (is_map_fc and is_clear_type(val, "g")):
         return ClearType.GOLDEN_FC
     elif is_clear_type(val, "g & fc"):
         return ClearType.GOLDEN_AND_FC
