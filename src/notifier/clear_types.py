@@ -33,7 +33,7 @@ def cell_value_to_clear_type(cell_value, map_clear_type):
         return ClearType.NO_VIDEO
     elif is_clear_type_or_repeated(val, "fc") or (is_map_fc and is_clear_type_or_repeated(val, "v")):
         return ClearType.VIDEO_FC
-    elif is_clear_type(val, "v fc") or (is_map_fc and is_clear_type_or_repeated(val, "v")):
+    elif is_clear_type(val, "v fc"):
         return ClearType.VIDEO_AND_FC
     elif is_clear_type_or_repeated(val, "v"):
         return ClearType.VIDEO
