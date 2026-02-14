@@ -110,7 +110,7 @@ def save_clears_to_state_sheet(state_sheet, state_grid):
         range_end = gspread.utils.rowcol_to_a1(num_rows, num_cols)
 
         state_sheet.sheet1.clear()
-        state_sheet.sheet1.update(range_name=f'A1:{range_end}', values=state_grid, value_input_option='USER_ENTERED')
+        state_sheet.sheet1.update(range_name=f'A1:{range_end}', values=state_grid, value_input_option='RAW')
         print("Successfully saved new state.")
     except Exception as e:
         print(f"ERROR: Could not save state to sheet: {e}")
