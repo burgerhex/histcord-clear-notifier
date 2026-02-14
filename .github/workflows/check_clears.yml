@@ -25,6 +25,7 @@ jobs:
 
       - name: 🚀 Run Monitoring Script
         env:
+          PYTHONPATH: src
           PRIMARY_DISCORD_WEBHOOK_URL: ${{ secrets.PRIMARY_DISCORD_WEBHOOK_URL }}
           SECONDARY_DISCORD_WEBHOOK_URL: ${{ secrets.SECONDARY_DISCORD_WEBHOOK_URL }}
           GOOGLE_CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
