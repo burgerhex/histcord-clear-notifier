@@ -3,6 +3,7 @@ import itertools
 import json
 import os
 import sys
+import time
 
 import gspread
 # noinspection PyPackageRequirements
@@ -15,6 +16,23 @@ _SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
+
+
+def _sheets_retry(fn, retries=5, delay=5):
+    """Retry fn() up to `retries` times on transient 5xx Google Sheets errors."""
+    import gspread.exceptions
+    for attempt in range(1, retries + 1):
+        try:
+            return fn()
+        except gspread.exceptions.APIError as e:
+            status = e.response.status_code if hasattr(e, "response") else 0
+            if status >= 500 and attempt < retries:
+                print(f"  [sheets] 5xx error ({status}), retrying in {delay}s "
+                      f"(attempt {attempt}/{retries})...")
+                time.sleep(delay)
+            else:
+                raise
+    return None
 
 
 @functools.cache
@@ -41,7 +59,7 @@ def get_gspread_client():
         sys.exit(1)
 
 
-def load_previous_state_from_state_sheet():
+def _load_previous_state_from_state_sheet():
     state_sheet_id = os.environ.get('STATE_SHEET_ID')
 
     gc = get_gspread_client()
@@ -78,6 +96,10 @@ def load_previous_state_from_state_sheet():
         sys.exit(1)
 
 
+def load_previous_state_from_state_sheet():
+    return _sheets_retry(_load_previous_state_from_state_sheet)
+
+
 def load_current_clears_from_main_sheet():
     return load_page_from_main_sheet(constants.CLEARS_PAGE_NAME)
 
@@ -86,7 +108,7 @@ def load_cld_from_main_sheet():
     return load_page_from_main_sheet(constants.CLD_PAGE_NAME)
 
 
-def load_page_from_main_sheet(page_name):
+def _load_page_from_main_sheet(page_name):
     clears_sheet_id = os.environ.get('CLEARS_SHEET_ID')
 
     gc = get_gspread_client()
@@ -103,7 +125,11 @@ def load_page_from_main_sheet(page_name):
         sys.exit(1)
 
 
-def save_clears_to_state_sheet(state_sheet, state_grid):
+def load_page_from_main_sheet(page_name):
+    return _sheets_retry(lambda: _load_page_from_main_sheet(page_name))
+
+
+def _save_clears_to_state_sheet(state_sheet, state_grid):
     try:
         num_rows = len(state_grid)
         num_cols = len(state_grid[0])
@@ -115,3 +141,7 @@ def save_clears_to_state_sheet(state_sheet, state_grid):
     except Exception as e:
         print(f"ERROR: Could not save state to sheet: {e}")
         sys.exit(1)
+
+
+def save_clears_to_state_sheet(state_sheet, state_grid):
+    _sheets_retry(lambda: _save_clears_to_state_sheet(state_sheet, state_grid))
