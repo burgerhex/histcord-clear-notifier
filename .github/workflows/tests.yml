@@ -1,0 +1,34 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: 🛠️ Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🧪 Run Tests
+        env:
+          PYTHONPATH: src
+          PRIMARY_DISCORD_WEBHOOK_URL: ${{ secrets.PRIMARY_DISCORD_WEBHOOK_URL }}
+          SECONDARY_DISCORD_WEBHOOK_URL: ${{ secrets.SECONDARY_DISCORD_WEBHOOK_URL }}
+          GOOGLE_CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
+          STATE_SHEET_ID: ${{ secrets.STATE_SHEET_ID }}
+          CLEARS_SHEET_ID: ${{ secrets.CLEARS_SHEET_ID }}
+        run: python -m unittest discover tests/
