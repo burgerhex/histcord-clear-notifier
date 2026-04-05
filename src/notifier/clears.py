@@ -139,6 +139,7 @@ def get_state_diff_list(previous_state, current_state, map_difficulties):
     # as of the time of writing, there can only be 3 "clear types": "[C]", "[FC]", and "[All Maps]" (specific to
     # devil's den). these should *probably* never increase, and the devil's den only has one entry, so the most we
     # should see per set is two (c and fc).
+    # TODO: check if this works with goldens
     for (player_name, trimmed_map_name), clear_entries in clear_diffs_by_player_and_map.items():
         add_all_entries = True
         clear_types = {clear_entry[1] for clear_entry in clear_entries}
