@@ -66,7 +66,7 @@ def _load_previous_state_from_state_sheet():
     previous_state = {}
 
     try:
-        state_sheet = gc.open_by_key(state_sheet_id)
+        state_sheet = _sheets_retry(lambda: gc.open_by_key(state_sheet_id))
 
         state_table = state_sheet.sheet1.get_all_values()
 
@@ -114,7 +114,7 @@ def _load_page_from_main_sheet(page_name):
     gc = get_gspread_client()
 
     try:
-        target_sh = gc.open_by_key(clears_sheet_id)
+        target_sh = _sheets_retry(lambda: gc.open_by_key(clears_sheet_id))
         worksheet = target_sh.worksheet(page_name)
         return worksheet.get_all_values()
     except gspread.exceptions.WorksheetNotFound:
