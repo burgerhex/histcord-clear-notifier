@@ -17,6 +17,7 @@ def get_current_state_and_maps_from_sheet_values(all_values):
     map_difficulties = {}
     current_state = {}
     previous_map_empty = False
+    previous_map_number = -1
     map_star_difficulty = constants.FIRST_REAL_MAP_STAR_DIFFICULTY
 
     # use islice to start at a certain index. more efficient than making a copy of the entire table
@@ -33,13 +34,28 @@ def get_current_state_and_maps_from_sheet_values(all_values):
             continue
 
         # two empty map names in a row means we've reached a new star difficulty
+        # or, just a number followed by an empty map name
         if not map_name:
             if previous_map_empty:
+                print("WARNING: Using legacy path with double empty map name, decrementing map difficulty")
                 map_star_difficulty -= 1
                 previous_map_empty = False
+                previous_map_number = -1
+            elif previous_map_number >= 0:
+                map_star_difficulty = previous_map_number
+                previous_map_empty = False
+                previous_map_number = -1
             else:
                 previous_map_empty = True
+                previous_map_number = -1
             continue
+        elif map_name.isdigit():
+            previous_map_number = int(map_name)
+            previous_map_empty = False
+            continue
+
+        previous_map_empty = False
+        previous_map_number = -1
 
         map_difficulties[map_name] = map_star_difficulty
         first_player_i = constants.MIN_PLAYER_COL_INDEX
